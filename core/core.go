@@ -10,12 +10,16 @@ type FileSys interface {
 	Save(path string, name string) error
 }
 
-// A function that can be added to the otto vm.
-type AteFunc func(otto.FunctionCall) otto.Value
-
-type ScriptEngine interface {
-	InjectFunction(funcName string, fun AteFunc)
-	LoadScript(fileName string)
-	RunAction(path []string, actionName string, params interface{}) []string
-	RunMethod(nameSpace, funcName string, params interface{}) []string
+// Ordered map for storage in an account or generalized table
+type Storage struct{
+    // hex strings for eth, arrays of strings (cols) for sql dbs
+    Storage map[string]interface{}
+    Order []string
 }
+
+// Ordered map for all accounts
+type State struct{
+    State map[string]Storage// map addrs to map of storage to value
+    Order []string // ordered addrs and ordered storage inside
+}
+

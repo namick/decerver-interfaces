@@ -10,13 +10,15 @@ import (
 
 type Event interface {
 	// Event ID (for ethereum it could be newBlock or newTx:post)
-	Id() string
+	Event() string
+    // object of the event
+    Target() string
 	// The event data.
-	Data() interface{}
+	Resource() interface{}
 	// The source is the id of the module that produced the event.
 	Source() string
 	// Timestamp is written by the module as it's being passed to the event handler.
-	Timestamp() uint64
+	Timestamp() *time.Time
 }
 
 type EventSystem interface {

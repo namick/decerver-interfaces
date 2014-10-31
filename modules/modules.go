@@ -7,21 +7,30 @@ import (
 )
 
 type Module interface {
-	// How to get the active logger
-	Logger() *log.Logger
-	
-	Init(se core.ScriptEngine)
+    // for registering handlers to the ate vm
+    RegisterModule(registry api.ApiRegistry, logger core.LogSystem) error 
+
+	Init() error
+    Start() error
+	Shutdown() error
+
+    ReadConfig(config_file string)
+    WriteConfig(config_file string)
 	Name() string
-	HttpAPIServices() []interface{}
-	WsAPIServiceFactories() []api.WsAPIServiceFactory
-	Shutdown()
 }
 
 type Database interface {
 	Module
-	Get(addr string, params ... string)
-	Push(addr string, params ... string)
+    // generalized get/push
+	Get(cmd string, params ... string) (string, error)
+	Push(cmd string, params ... string) (string, error)
+    // get ordered map of storage
+    State() core.State
+    // ordered map of values in storage (generalized sql table)
+    Storage(addr string) core.Storage
+    // commit cached data (mine a block)
 	Commit()
+    // commit continuously
 	AutoCommit(toggle bool)
 	IsAutocommit() bool
 }
