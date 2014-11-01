@@ -2,7 +2,7 @@ package core
 
 import (
 	"os"
-	"github.com/robertkrimen/otto"
+    "log"
 )
 
 type FileSys interface {
@@ -22,4 +22,6 @@ type State struct{
     State map[string]Storage// map addrs to map of storage to value
     Order []string // ordered addrs and ordered storage inside
 }
+
+type LogSystem log.Logger
 

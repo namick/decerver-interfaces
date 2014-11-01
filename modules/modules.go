@@ -17,6 +17,8 @@ type Module interface {
     ReadConfig(config_file string)
     WriteConfig(config_file string)
 	Name() string
+
+    Subscribe(name string, event string, target string)
 }
 
 type Database interface {
@@ -27,7 +29,7 @@ type Database interface {
     // get ordered map of storage
     State() core.State
     // ordered map of values in storage (generalized sql table)
-    Storage(addr string) core.Storage
+    Storage(target string) core.Storage
     // commit cached data (mine a block)
 	Commit()
     // commit continuously

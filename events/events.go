@@ -5,20 +5,20 @@ package events
 // it implements the Subscriber interface and pass it to the event system.
 
 import (
-
+    "time"
 )
 
-type Event interface {
+type Event struct{
 	// Event ID (for ethereum it could be newBlock or newTx:post)
-	Event() string
+	Event  string
     // object of the event
-    Target() string
+    Target string
 	// The event data.
-	Resource() interface{}
+	Resource interface{}
 	// The source is the id of the module that produced the event.
-	Source() string
+	Source string
 	// Timestamp is written by the module as it's being passed to the event handler.
-	Timestamp() *time.Time
+	TimeStamp time.Time
 }
 
 type EventSystem interface {

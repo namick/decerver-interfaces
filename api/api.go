@@ -22,6 +22,7 @@ package api
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
+    "github.com/robertkrimen/otto"
 )
 
 // A JSON-RPC message received by the server.
