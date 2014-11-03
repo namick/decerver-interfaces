@@ -2,24 +2,22 @@ package core
 
 import (
 	"os"
-	"github.com/robertkrimen/otto"
 )
 
-type FileSys interface {
-	Open(path string, name string) (*os.File, error)
-	Save(path string, name string) error
+type FileIO interface {
+	Root() string
+	Databases() string
+	FileSystems() string
+	Log() string
+	Apps() string
+	OpenFile(path string, name string) (*os.File, error)
+	SaveFile(path string, name string) error
 }
 
-// Ordered map for storage in an account or generalized table
-type Storage struct{
-    // hex strings for eth, arrays of strings (cols) for sql dbs
-    Storage map[string]interface{}
-    Order []string
+type Runtime interface {
+	BindScriptObject(name string, val interface{}) error
+	LoadScriptFile(fileName string) error
+	LoadScriptFiles(fileName ...string) error
+	RunAction(path []string, actionName string, params interface{}) ([]string, error)
+	RunMethod(nameSpace, funcName string, params interface{}) ([]string, error)
 }
-
-// Ordered map for all accounts
-type State struct{
-    State map[string]Storage// map addrs to map of storage to value
-    Order []string // ordered addrs and ordered storage inside
-}
-

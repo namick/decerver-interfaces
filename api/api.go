@@ -14,18 +14,30 @@ package api
 // JSON-RPC 2.0. An rpc function takes two arguments - a pointer to a Request object, and a
 // pointer to a Response object, as per the type 'WsAPIMethod'
 //
-// TODO Explain how to create a service.
+// TODO Write up the websocket rpc protocol and explain how to create a service.
 //
 // Stateful connections is the normal way to communicate between a UI and deCerver, as it allows
 // two-way communication. Http can be used in cases when you only want to do some occasional polling.
-
 import (
 	"encoding/json"
-	"github.com/gorilla/websocket"
+	"github.com/robertkrimen/otto"
+)
+
+type ErrorCode int
+
+const (
+	E_PARSE       ErrorCode = -32700
+	E_INVALID_REQ ErrorCode = -32600
+	E_NO_METHOD   ErrorCode = -32601
+	E_BAD_PARAMS  ErrorCode = -32602
+	E_INTERNAL    ErrorCode = -32603
+	E_SERVER      ErrorCode = -32000
 )
 
 // A JSON-RPC message received by the server.
 type Request struct {
+	// Should always be set to '2.0'
+	JsonRPC string `json:"jsonrpc"` 
 	// A String containing the name of the method to be invoked.
 	Method string `json:"method"`
 	// An Array of objects to pass as arguments to the method.
@@ -48,32 +60,7 @@ type Response struct {
 	Timestamp int `json:"timestamp"`
 }
 
-// A function that can be added to the otto vm.
-type AteFunc func(otto.FunctionCall) otto.Value
-
-type ScriptEngine interface {
-	InjectFunction(funcName string, fun AteFunc)
-	LoadScript(fileName string)
-	RunAction(path []string, actionName string, params interface{}) []string
-	RunMethod(nameSpace, funcName string, params interface{}) []string
-}
-
-type ApiRegistry interface{
-    ScriptEngine
-}
-
 var null = json.RawMessage([]byte("null"))
-
-type ErrorCode int
-
-const (
-	E_PARSE       ErrorCode = -32700
-	E_INVALID_REQ ErrorCode = -32600
-	E_NO_METHOD   ErrorCode = -32601
-	E_BAD_PARAMS  ErrorCode = -32602
-	E_INTERNAL    ErrorCode = -32603
-	E_SERVER      ErrorCode = -32000
-)
 
 // Errors sent in api call responses.
 type Error struct {
@@ -90,12 +77,13 @@ func (e *Error) Error() string {
 	return e.Message
 }
 
-type WebSocketConn interface {
+type WebSocketObj interface {
 	SessionId() uint32
-	Connection() *websocket.Conn
+	WriteTextMsg(msg interface{})
+	WriteCloseMsg()
 }
 
-// Function that handles a specific type of posting
+// Function that handles socket based rpc requests
 type WsAPIMethod func(*Request, *Response)
 
 // A stateful (websocket-based) rpc service.
@@ -103,8 +91,8 @@ type WsAPIService interface {
 	Name() string
 	Init()
 	HandleRPC(*Request) (*Response, error)
-	SetConnection(wsConn WebSocketConn)
-	Close()
+	SetConnection(wsConn WebSocketObj)
+	Shutdown()
 }
 
 // A factory for creating SRPCServices of a given kind
@@ -113,4 +101,12 @@ type WsAPIServiceFactory interface {
 	Init()
 	ServiceName() string
 	Shutdown()
+}
+
+// A function that can be added to the otto vm.
+type AteFunc func(otto.FunctionCall) otto.Value
+
+type ApiRegistry interface {
+    RegisterHttpServices(service ... interface{})
+	RegisterWsServiceFactories(factory ... WsAPIServiceFactory)
 }
