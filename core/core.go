@@ -19,5 +19,5 @@ type Runtime interface {
 	LoadScriptFile(fileName string) error
 	LoadScriptFiles(fileName ...string) error
 	RunAction(path []string, actionName string, params interface{}) ([]string, error)
-	RunMethod(nameSpace, funcName string, params interface{}) ([]string, error)
+	RunFunction(funcName string, params interface{}) ([]string, error)
 }

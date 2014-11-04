@@ -37,7 +37,7 @@ const (
 // A JSON-RPC message received by the server.
 type Request struct {
 	// Should always be set to '2.0'
-	JsonRPC string `json:"jsonrpc"` 
+	JsonRPC string `json:"jsonrpc"`
 	// A String containing the name of the method to be invoked.
 	Method string `json:"method"`
 	// An Array of objects to pass as arguments to the method.
@@ -107,6 +107,6 @@ type WsAPIServiceFactory interface {
 type AteFunc func(otto.FunctionCall) otto.Value
 
 type ApiRegistry interface {
-    RegisterHttpServices(service ... interface{})
-	RegisterWsServiceFactories(factory ... WsAPIServiceFactory)
+	RegisterHttpServices(service ...interface{})
+	RegisterWsServiceFactories(factory ...WsAPIServiceFactory)
 }

@@ -1,6 +1,6 @@
 package util
 
-// Simple id pool. Lets you 
+// Simple id pool. Lets you
 import (
 	"container/list"
 )

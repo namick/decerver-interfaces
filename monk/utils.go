@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/eris-ltd/thelonious/monk"
 	"github.com/eris-ltd/thelonious/ethchain"
 	"github.com/eris-ltd/thelonious/ethstate"
 	"github.com/eris-ltd/thelonious/ethutil"
-	"math/big"
+	"github.com/eris-ltd/thelonious/monk"
 	"github.com/golang/glog"
+	"math/big"
 	"strings"
 )
 
@@ -356,7 +356,7 @@ func createTx(ethChain *monk.EthChain, recipient, valueStr, gasStr, gasPriceStr,
 
 		tx = ethchain.NewTransactionMessage(hash, value, gas, gasPrice, data)
 	}
-	
+
 	keyPair := ethChain.Ethereum.KeyManager().KeyPair()
 	acc := ethChain.Ethereum.StateManager().TransState().GetOrNewStateObject(keyPair.Address())
 	tx.Nonce = acc.Nonce
@@ -371,10 +371,10 @@ func createTx(ethChain *monk.EthChain, recipient, valueStr, gasStr, gasPriceStr,
 		reply.Address = hex.EncodeToString(tx.CreationAddress())
 		glog.Infof("Contract addr %x", tx.CreationAddress())
 	}
-	
+
 	reply.Hash = hex.EncodeToString(tx.Hash())
 	reply.Success = true
-	
+
 	return nil
 }
 
@@ -481,4 +481,3 @@ func RLPDecode(data []byte) []byte {
 
 	return nil
 }
-
