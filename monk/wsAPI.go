@@ -12,18 +12,19 @@ import (
 	"github.com/eris-ltd/thelonious/ethchain"
 	"github.com/eris-ltd/thelonious/ethreact"
 	"github.com/eris-ltd/thelonious/monk"
-	"github.com/golang/glog"
 	"time"
 )
 
 type MonkWsAPIFactory struct {
-	ethChain    *monk.EthChain
+	ethChain *monk.EthChain
+	ethLogger *EthLogger
 	serviceName string
 }
 
 func NewMonkWsAPIFactory(ethChain *monk.EthChain) *MonkWsAPIFactory {
 	fact := &MonkWsAPIFactory{
 		ethChain:    ethChain,
+		ethLogger:   NewEthLogger(),
 		serviceName: "MonkWsAPI",
 	}
 	return fact
@@ -47,6 +48,7 @@ func (fact *MonkWsAPIFactory) CreateService() api.WsAPIService {
 	ec.Init()
 	service := newMonkWsAPI(ec)
 	service.name = fact.serviceName
+	service.ethLogger = fact.ethLogger
 	return service
 }
 
@@ -56,6 +58,7 @@ type MonkWsAPI struct {
 	ethChain    *monk.EthChain
 	conn        api.WebSocketObj
 	ethListener *EthListener
+	ethLogger   *EthLogger
 }
 
 // Create a new handler
@@ -69,6 +72,7 @@ func newMonkWsAPI(eth *monk.EthChain) *MonkWsAPI {
 	esrpc.mappings["StartMining"] = esrpc.StartMining
 	esrpc.mappings["StopMining"] = esrpc.StopMining
 	esrpc.mappings["LastBlockNumber"] = esrpc.LastBlockNumber
+	esrpc.mappings["BlockMiniByHash"] = esrpc.BlockMiniByHash
 	esrpc.mappings["BlockByHash"] = esrpc.BlockByHash
 	esrpc.mappings["Account"] = esrpc.Account
 	esrpc.mappings["Transact"] = esrpc.Transact
@@ -117,7 +121,7 @@ func (esrpc *MonkWsAPI) AddMethod(methodName string, method api.WsAPIMethod, rep
 		if !replaceOld {
 			return errors.New("Tried to overwrite an already existing method.")
 		} else {
-			glog.Infoln("Overwriting old method for '" + methodName + "'.")
+			fmt.Printf("Overwriting old method for '" + methodName + "'.")
 		}
 
 	}
@@ -128,7 +132,7 @@ func (esrpc *MonkWsAPI) AddMethod(methodName string, method api.WsAPIMethod, rep
 // Remove a method
 func (esrpc *MonkWsAPI) RemoveMethod(methodName string) {
 	if esrpc.mappings[methodName] == nil {
-		glog.Infoln("Removal failed. There is no handler for '" + methodName + "'.")
+		fmt.Printf("Removal failed. There is no handler for '" + methodName + "'.")
 	} else {
 		delete(esrpc.mappings, methodName)
 	}
@@ -166,6 +170,33 @@ func (esrpc *MonkWsAPI) StopMining(req *api.Request, resp *api.Response) {
 func (esrpc *MonkWsAPI) LastBlockNumber(req *api.Request, resp *api.Response) {
 	retVal := &VInteger{}
 	retVal.IVal = getLastBlockNumber(esrpc.ethChain)
+	resp.Result = retVal
+}
+
+func (esrpc *MonkWsAPI) BlockMiniByHash(req *api.Request, resp *api.Response) {
+	params := &VString{}
+	err := json.Unmarshal(*req.Params, params)
+
+	if err != nil {
+		resp.Error = err.Error()
+		return
+	}
+
+	retVal := &BlockMiniData{}
+	hash, decErr := hex.DecodeString(params.SVal)
+
+	if decErr != nil {
+		resp.Error = decErr.Error()
+		return
+	}
+
+	block := esrpc.ethChain.Pipe.Block(hash)
+	if block == nil {
+		resp.Error = "No block with hash: " + params.SVal
+		return
+	}
+
+	getBlockMiniDataFromBlock(esrpc.ethChain, retVal, block)
 	resp.Result = retVal
 }
 
@@ -224,16 +255,6 @@ func (esrpc *MonkWsAPI) Account(req *api.Request, resp *api.Response) {
 	resp.Result = retVal
 }
 
-/*
-type TxIndata struct {
-	Recipient string
-	Value     string
-	Gas       string
-	GasCost   string
-	Data      string
-}
-*/
-
 func (esrpc *MonkWsAPI) Transact(req *api.Request, resp *api.Response) {
 	params := &TxIndata{}
 	err := json.Unmarshal(*req.Params, params)
@@ -253,7 +274,7 @@ func (esrpc *MonkWsAPI) Transact(req *api.Request, resp *api.Response) {
 }
 
 func (esrpc *MonkWsAPI) WorldState(req *api.Request, resp *api.Response) {
-
+	// We do this all in one go.
 	blocks := getWorldState(esrpc.ethChain)
 	// Let the client know how many blocks there are.
 	resp = &api.Response{}
@@ -305,12 +326,13 @@ type EthListener struct {
 	txPostFailChannel chan ethreact.Event
 	blockChannel      chan ethreact.Event
 	stopChannel       chan bool
+	logSub            *LogSub
 }
 
 func newEthListener(mnk *MonkWsAPI) *EthListener {
 	el := &EthListener{}
 	el.mnk = mnk
-
+	
 	el.blockChannel = make(chan ethreact.Event, 10)
 	el.txPreChannel = make(chan ethreact.Event, 10)
 	el.txPreFailChannel = make(chan ethreact.Event, 10)
@@ -322,6 +344,10 @@ func newEthListener(mnk *MonkWsAPI) *EthListener {
 	el.mnk.ethChain.Ethereum.Reactor().Subscribe("newTx:pre:fail", el.txPreFailChannel)
 	el.mnk.ethChain.Ethereum.Reactor().Subscribe("newTx:post", el.txPostChannel)
 	el.mnk.ethChain.Ethereum.Reactor().Subscribe("newTx:post:fail", el.txPostFailChannel)
+	
+	el.logSub = NewStdLogSub()
+	el.logSub.SubId = el.mnk.conn.SessionId()
+	el.mnk.ethLogger.AddSub(el.logSub)
 
 	go func(el *EthListener) {
 		for {
@@ -374,6 +400,12 @@ func newEthListener(mnk *MonkWsAPI) *EthListener {
 				resp.Result = trans
 				resp.Timestamp = getTimestamp()
 				el.mnk.conn.WriteTextMsg(resp)
+			case txt := <-el.logSub.Channel:
+				resp := &api.Response{}
+				resp.Id = "Log"
+				resp.Result = &VString{SVal: txt}
+				resp.Timestamp = getTimestamp()
+				el.mnk.conn.WriteTextMsg(resp)
 			case <-el.stopChannel:
 				// Quit this
 				return
@@ -390,6 +422,7 @@ func (el *EthListener) Close() {
 	rctr.Unsubscribe("newTx:pre:fail", el.txPreFailChannel)
 	rctr.Unsubscribe("newTx:post", el.txPostChannel)
 	rctr.Unsubscribe("newTx:post:fail", el.txPostFailChannel)
+	el.mnk.ethLogger.RemoveSub(el.logSub)
 }
 
 func getTimestamp() int {

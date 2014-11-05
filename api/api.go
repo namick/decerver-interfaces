@@ -42,14 +42,14 @@ type Request struct {
 	Method string `json:"method"`
 	// An Array of objects to pass as arguments to the method.
 	Params *json.RawMessage `json:"params"`
+	// Id
+	Id int `json:"id"`
 	// Timestamp
 	Timestamp int `json:"timestamp"`
 }
 
 // A JSON-RPC message sent by the server.
 type Response struct {
-	// The name of the Object that was returned by the invoke method.
-	Id string `json:"id"`
 	// The Object that was returned by the invoked method. This must be null
 	// in case there was an error invoking the method.
 	Result interface{} `json:"result"`
@@ -58,6 +58,8 @@ type Response struct {
 	Error interface{} `json:"error"`
 	// Timestamp
 	Timestamp int `json:"timestamp"`
+	// The name of the Object that was returned by the invoke method.
+	Id string `json:"id"`
 }
 
 var null = json.RawMessage([]byte("null"))
@@ -109,4 +111,11 @@ type AteFunc func(otto.FunctionCall) otto.Value
 type ApiRegistry interface {
 	RegisterHttpServices(service ...interface{})
 	RegisterWsServiceFactories(factory ...WsAPIServiceFactory)
+}
+
+type NetHandler interface {
+	HandleInboundHttp(*Request) *Response
+	HandleInboundWs(*Request)
+	HandleOutboundWs(*Response)
+	// TODO handlers for inbound/outbound stream
 }

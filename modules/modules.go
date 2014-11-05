@@ -3,11 +3,12 @@ package modules
 import (
 	"github.com/eris-ltd/deCerver-interfaces/api"
 	"github.com/eris-ltd/deCerver-interfaces/core"
+	"github.com/eris-ltd/deCerver-interfaces/events"
 )
 
 type Module interface {
 	// For registering with deCerver.
-	Register(fileIO core.FileIO, registry api.ApiRegistry, runtime core.Runtime) error
+	Register(fileIO core.FileIO, registry api.ApiRegistry, runtime core.Runtime, eReg events.EventRegistry) error
 	Init() error
 	Start() error
 	Shutdown() error

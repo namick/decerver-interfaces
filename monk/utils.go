@@ -8,9 +8,13 @@ import (
 	"github.com/eris-ltd/thelonious/ethstate"
 	"github.com/eris-ltd/thelonious/ethutil"
 	"github.com/eris-ltd/thelonious/monk"
-	"github.com/golang/glog"
+	"github.com/eris-ltd/thelonious/ethlog"
+	"io"
+	"sync"
 	"math/big"
 	"strings"
+	"log"
+	"bufio"
 )
 
 const (
@@ -369,7 +373,7 @@ func createTx(ethChain *monk.EthChain, recipient, valueStr, gasStr, gasPriceStr,
 	// Now write
 	if contractCreation {
 		reply.Address = hex.EncodeToString(tx.CreationAddress())
-		glog.Infof("Contract addr %x", tx.CreationAddress())
+		fmt.Printf("Contract addr %x", tx.CreationAddress())
 	}
 
 	reply.Hash = hex.EncodeToString(tx.Hash())
@@ -465,6 +469,75 @@ func getAccountFromStateObject(account *Account, st *ethstate.StateObject) {
 	})
 	account.Storage = storage
 	return
+}
+
+// TODO while testing
+type LogSub struct {
+	Channel  chan string
+	SubId    uint32
+	LogLevel ethlog.LogLevel
+	Enabled  bool
+}
+
+func NewStdLogSub() *LogSub {
+	ls := &LogSub{
+		Channel:  make(chan string),
+		SubId:    0,
+		LogLevel: ethlog.LogLevel(5),
+		Enabled:  true,
+	}
+	return ls
+}
+
+type EthLogger struct {
+	mutex     *sync.Mutex
+	logReader io.Reader
+	logWriter io.Writer
+	logLevel  ethlog.LogLevel
+	subs      []*LogSub
+}
+
+func NewEthLogger() *EthLogger {
+	el := &EthLogger{}
+	el.mutex = &sync.Mutex{};
+	el.logLevel = ethlog.LogLevel(5)
+	el.logReader, el.logWriter = io.Pipe()
+
+	ethlog.AddLogSystem(ethlog.NewStdLogSystem(el.logWriter, log.LstdFlags, el.logLevel))
+
+	go func(el *EthLogger) {
+		scanner := bufio.NewScanner(el.logReader)
+		for scanner.Scan() {
+			text := scanner.Text()
+			el.mutex.Lock()
+			for _, sub := range el.subs {
+				sub.Channel <- text
+			}
+			el.mutex.Unlock()
+		}
+	}(el)
+	return el
+}
+
+func (el *EthLogger) AddSub(sub *LogSub) {
+	el.mutex.Lock()
+	el.subs = append(el.subs, sub)
+	el.mutex.Unlock()
+}
+
+func (el *EthLogger) RemoveSub(sub *LogSub) {
+	el.mutex.Lock()
+	theIdx := -1
+	for idx, s := range el.subs {
+		if sub.SubId == s.SubId {
+			theIdx = idx
+			break
+		}
+	}
+	if theIdx >= 0 {
+		el.subs = append(el.subs[:theIdx], el.subs[theIdx+1:]...)
+	}
+	el.mutex.Unlock()
 }
 
 func RLPDecode(data []byte) []byte {
