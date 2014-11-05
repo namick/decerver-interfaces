@@ -37,7 +37,7 @@ type Database interface {
 
 // TODO implement this
 type FileSystem interface {
-	GetFile(hash string)
+    Get(cmd string, params ...string) (interface{}, error)
 }
 
 // Ordered map for storage in an account or generalized table
@@ -51,4 +51,11 @@ type Storage struct {
 type State struct {
 	State map[string]Storage // map addrs to map of storage to value
 	Order []string           // ordered addrs and ordered storage inside
+}
+
+// File System Node for directory trees
+type FsNode struct{
+    Nodes []*FsNode
+    Name string
+    Hash string
 }
