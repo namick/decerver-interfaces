@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/eris-ltd/thelonious/ethchain"
-	"github.com/eris-ltd/thelonious/ethcrypto"
-	"github.com/eris-ltd/thelonious/ethutil"
-	"github.com/eris-ltd/thelonious/ethstate"
+	"github.com/eris-ltd/thelonious/chain"
+	"github.com/eris-ltd/thelonious/crypto"
+	"github.com/eris-ltd/thelonious/util"
+	"github.com/eris-ltd/thelonious/state"
 )
 
 // Block interface exposed to QML

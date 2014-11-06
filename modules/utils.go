@@ -1,14 +1,14 @@
-package monk
+package modules
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/eris-ltd/thelonious/ethchain"
-	"github.com/eris-ltd/thelonious/ethstate"
-	"github.com/eris-ltd/thelonious/ethutil"
-	"github.com/eris-ltd/thelonious/monk"
-	"github.com/eris-ltd/thelonious/ethlog"
+	//"github.com/eris-ltd/thelonious/chain"
+	//"github.com/eris-ltd/thelonious/state"
+	//"github.com/eris-ltd/thelonious/util"
+	//"github.com/eris-ltd/thelonious/monk"
+	"github.com/eris-ltd/thelonious/log"
 	"io"
 	"sync"
 	"math/big"
@@ -31,6 +31,9 @@ const (
 	ACCOUNT_MODIFIED = iota
 	ACCOUNT_CREATED
 	ACCOUNT_DELETED
+
+    ZeroHash160 = "00000000000000000000"
+    ZerHash256 = "00000000000000000000000000000000"
 )
 
 type NoArgs struct {
@@ -70,6 +73,22 @@ type TransactionArgs struct {
 	TxHash    string
 }
 
+type Block interface{
+    Time() int
+    Number() string
+    Nonce() string
+    Hash() string
+    PrevHash() string
+    Transactions() []*Transaction
+    TxRoot() string
+    Coinbase() string
+    Difficulty() string
+    Uncles() []string
+    UnclesRoot() string
+    MinGasPrice() string
+
+}
+
 type BlockData struct {
 	Number       string
 	Time         int
@@ -87,7 +106,16 @@ type BlockData struct {
 	UncleSha     string
 }
 
-type Transaction struct {
+// TODO: move CreationAddress to Recipient
+type Transaction interface{
+    Sender() string
+    Recipient() string
+    CreatesContract() bool
+    CreationAddress() string
+
+}
+
+type TransactionData struct {
 	ContractCreation bool
 	Nonce            string
 	Hash             string
@@ -142,16 +170,12 @@ type Accounts struct {
 	List []*Account
 }
 
-func getLastBlockNumber(ethChain *monk.EthChain) int {
-	return int(ethChain.Ethereum.BlockChain().LastBlockNumber)
-}
-
-func getWorldState(ethChain *monk.EthChain) []*BlockMiniData {
-	lastNum := ethChain.Ethereum.BlockChain().LastBlockNumber
+func getWorldState(chain Blockchain) []*BlockMiniData {
+	lastNum := chain.GetBlockCount()
 	ctr := int(lastNum)
 	fmt.Printf("Last Block Number: %d\n", lastNum)
 	blocks := make([]*BlockMiniData, ctr+1)
-	block := ethChain.Ethereum.BlockChain().CurrentBlock
+	block := chain.GetLatestBlock() 
 	fmt.Printf("Current Block Number: %s\n", block.Number.String())
 	bmd := &BlockMiniData{}
 	getBlockMiniWSFromBlock(bmd, block)
@@ -160,7 +184,7 @@ func getWorldState(ethChain *monk.EthChain) []*BlockMiniData {
 	ctr--
 	for ctr >= 0 {
 		pHash := block.PrevHash
-		block = ethChain.Ethereum.BlockChain().GetBlock(pHash)
+		block = chain.GetBlock(pHash)
 		fmt.Printf("Current Block Number: %s\n", block.Number.String())
 		bmd := &BlockMiniData{}
 		getBlockMiniWSFromBlock(bmd, block)
@@ -173,10 +197,10 @@ func getWorldState(ethChain *monk.EthChain) []*BlockMiniData {
 }
 
 // Used during world state generation, when we don't care about the transactions.
-func getBlockMiniWSFromBlock(reply *BlockMiniData, block *ethchain.Block) {
+func getBlockMiniWSFromBlock(reply *BlockMiniData, block *Block){
 
-	reply.Number = block.Number.String()
-	reply.Hash = hex.EncodeToString(block.Hash())
+	reply.Number = block.Number()
+	reply.Hash = block.Hash()
 
 	if block.Transactions() != nil && len(block.Transactions()) > 0 {
 		size := len(block.Transactions())
@@ -187,10 +211,10 @@ func getBlockMiniWSFromBlock(reply *BlockMiniData, block *ethchain.Block) {
 }
 
 // Used in block updates from reactor, when we want account diffs along with the block data.
-func getBlockMiniDataFromBlock(ethChain *monk.EthChain, reply *BlockMiniData, block *ethchain.Block) {
+func getBlockMiniDataFromBlock(chain Blockchain, reply *BlockMiniData, block Block) {
 
-	reply.Number = block.Number.String()
-	reply.Hash = hex.EncodeToString(block.Hash())
+	reply.Number = block.Number()
+	reply.Hash = block.Hash()
 
 	aa := make(map[string]int)
 	size := len(block.Transactions())
@@ -210,15 +234,14 @@ func getBlockMiniDataFromBlock(ethChain *monk.EthChain, reply *BlockMiniData, bl
 
 		// This flag is used for the receiver (or creation address).
 		rFlag := ACCOUNT_MODIFIED
-		var rcBytes []byte
+		var receiver string
 		if tx.CreatesContract() {
 			rFlag |= ACCOUNT_CREATED
-			rcBytes = tx.CreationAddress()
+			receiver = tx.CreationAddress()
 		} else {
-			rcBytes = tx.Recipient
+			receiver = tx.Recipient()
 		}
 
-		receiver := hex.EncodeToString(rcBytes)
 		// Receiver
 		if _, ok := aa[receiver]; !ok {
 			aa[receiver] = rFlag
@@ -229,7 +252,7 @@ func getBlockMiniDataFromBlock(ethChain *monk.EthChain, reply *BlockMiniData, bl
 	}
 
 	// Coinbase
-	cbAddr := hex.EncodeToString(block.Coinbase)
+	cbAddr := block.Coinbase()
 
 	if _, ok := aa[cbAddr]; !ok {
 		aa[cbAddr] = ACCOUNT_MODIFIED
@@ -242,16 +265,17 @@ func getBlockMiniDataFromBlock(ethChain *monk.EthChain, reply *BlockMiniData, bl
 
 	for addr, flag := range aa {
 		// TODO really convert back and forth between bytes...
-		addrBytes, _ := hex.DecodeString(addr)
-		stObj := ethChain.Ethereum.BlockChain().CurrentBlock.State().GetStateObject(addrBytes)
+		//addrBytes, _ := hex.DecodeString(addr)
+		//stObj := ethChain.Ethereum.BlockChain().CurrentBlock.State().GetStateObject(addrBytes)
+        stObj := chain.GetStorage(addr)
 		am := &AccountMini{}
 		if stObj == nil {
 			am.Address = addr
 			am.Flag = ACCOUNT_DELETED
 		} else {
 			am.Address = addr
-			am.Nonce = int(stObj.Nonce)
-			am.Value = stObj.Balance.String()
+			am.Nonce = strconv.Atoi(stObj.Nonce)
+			am.Value = stObj.Balance
 			am.Flag = flag
 		}
 		reply.AccountsAffected[ctr] = am
@@ -259,21 +283,21 @@ func getBlockMiniDataFromBlock(ethChain *monk.EthChain, reply *BlockMiniData, bl
 	}
 
 	// Block PrevHash
-	if block.PrevHash != nil && bytes.Compare(block.PrevHash, ethchain.ZeroHash160) != 0 {
-		reply.PrevHash = hex.EncodeToString(block.PrevHash)
+	if block.PrevHash() != "" && strings.Compare(block.PrevHash(), ZeroHash160) != 0 {
+		reply.PrevHash = block.PrevHash()
 	}
 }
 
-func getBlockDataFromBlock(reply *BlockData, block *ethchain.Block) {
+func getBlockDataFromBlock(reply *BlockData, block *Block) {
 
 	// Block Number
-	reply.Number = block.Number.String()
+	reply.Number = block.Number()
 
 	// Block Time
-	reply.Time = int(block.Time)
+	reply.Time = block.Time()
 
 	// Block Nonce
-	reply.Nonce = hex.EncodeToString(block.Nonce)
+	reply.Nonce = block.Nonce()
 
 	// Block Transactions (hashes)
 	trsct := block.Transactions()
@@ -287,39 +311,41 @@ func getBlockDataFromBlock(reply *BlockData, block *ethchain.Block) {
 	}
 
 	// Block Hash
-	reply.Hash = hex.EncodeToString(block.Hash())
+	reply.Hash = block.Hash()
 
 	// Block PrevHash
-	if block.PrevHash != nil && bytes.Compare(block.PrevHash, ethchain.ZeroHash256) != 0 {
-		reply.PrevHash = hex.EncodeToString(block.PrevHash)
+	if block.PrevHash() != nil && strings.Compare(block.PrevHash(), ZeroHash256) != 0 {
+		reply.PrevHash = block.PrevHash()
 	}
 
 	// Block Difficulty
-	reply.Difficulty = block.Difficulty.String()
+	reply.Difficulty = block.Difficulty()
 
 	// Block Coinbase
-	reply.Coinbase = hex.EncodeToString(block.Coinbase)
+	reply.Coinbase = block.Coinbase()
 
 	// Block Uncles (hashes)
-	uncles := block.Uncles
+	uncles := block.Uncles()
 
 	reply.Uncles = make([]string, len(uncles))
 	if uncles != nil {
 		for idx := range uncles {
-			reply.Uncles[idx] = hex.EncodeToString(uncles[idx].Hash())
+			reply.Uncles[idx] = uncles[idx]
 		}
 	}
 
-	reply.GasLimit = block.GasLimit.String()
-	reply.GasUsed = block.GasUsed.String()
+	reply.GasLimit = block.GasLimit()
+	reply.GasUsed = block.GasUsed() 
 
-	reply.MinGasPrice = block.MinGasPrice.String()
+	reply.MinGasPrice = block.MinGasPrice()
 
-	reply.TxSha = hex.EncodeToString(block.TxSha)
-	reply.UncleSha = hex.EncodeToString(block.UncleSha)
+	reply.TxSha = block.TxRoot()
+	reply.UncleSha = block.UnclesRoot()
 }
 
-func createTx(ethChain *monk.EthChain, recipient, valueStr, gasStr, gasPriceStr, scriptStr string, reply *TxReceipt) error {
+// TODO: call Tx, Msg, or Script!!!
+// Mostly destroy this :)
+func createTx(chain Blockchain, recipient, valueStr, gasStr, gasPriceStr, scriptStr string, reply *TxReceipt) error {
 	var contractCreation bool
 	if len(recipient) == 0 {
 		contractCreation = true
@@ -382,30 +408,7 @@ func createTx(ethChain *monk.EthChain, recipient, valueStr, gasStr, gasPriceStr,
 	return nil
 }
 
-func getStateObject(ethChain *monk.EthChain, address string) *ethstate.StateObject {
-	stateObject := ethChain.Ethereum.StateManager().CurrentState().GetStateObject(ethutil.Hex2Bytes(address))
-	if stateObject != nil {
-		return stateObject
-	}
-	return nil
-}
-
-func stateExists(ethChain *monk.EthChain, address string) bool {
-	sObj := getStateObject(ethChain, address)
-	if sObj == nil {
-		return false
-	}
-	return true
-}
-
-func isContract(ethChain *monk.EthChain, address string) bool {
-	sObj := getStateObject(ethChain, address)
-	if sObj != nil && len(sObj.Code) > 0 {
-		return true
-	}
-	return false
-}
-
+// TODO: deprecate
 func getTransactionFromTx(trans *Transaction, tx *ethchain.Transaction) {
 
 	trans.ContractCreation = tx.CreatesContract()
@@ -421,12 +424,12 @@ func getTransactionFromTx(trans *Transaction, tx *ethchain.Transaction) {
 	trans.Hash = hex.EncodeToString(tx.Hash())
 }
 
-func getAccounts(ethChain *monk.EthChain) []*AccountMini {
+// TODO: fix up
+func getAccounts(chain Blockchain) []*AccountMini {
 	accounts := []*AccountMini{}
-	block := ethChain.Ethereum.BlockChain().CurrentBlock
-	state := block.State()
-	it := state.Trie.NewIterator()
-	it.Each(func(key string, value *ethutil.Value) {
+    worldstate := chain.GetWorldState()
+    // loop over ordered worldstate
+	//it.Each(func(key string, value *ethutil.Value) {
 		addr := ethutil.Address([]byte(key))
 		// obj := ethstate.NewStateObjectFromBytes(addr, value.Bytes())
 		obj := block.State().GetAccount(addr)
@@ -440,7 +443,8 @@ func getAccounts(ethChain *monk.EthChain) []*AccountMini {
 	return accounts
 }
 
-func getAccountMiniFromStateObject(account *AccountMini, st *ethstate.StateObject) {
+// TODO: deprecate
+func getAccountMiniFromStateObject(account *AccountMini) {
 
 	account.Address = hex.EncodeToString(st.Address())
 	account.Contract = len(st.Code) > 0 || len(st.InitCode) > 0
@@ -450,6 +454,7 @@ func getAccountMiniFromStateObject(account *AccountMini, st *ethstate.StateObjec
 	return
 }
 
+//TODO: deprecate
 func getAccountFromStateObject(account *Account, st *ethstate.StateObject) {
 
 	account.Address = hex.EncodeToString(st.Address())
@@ -470,6 +475,10 @@ func getAccountFromStateObject(account *Account, st *ethstate.StateObject) {
 	account.Storage = storage
 	return
 }
+
+/*
+    GAHHHHHHHHH
+*/
 
 // TODO while testing
 type LogSub struct {
@@ -540,6 +549,8 @@ func (el *EthLogger) RemoveSub(sub *LogSub) {
 	el.mutex.Unlock()
 }
 
+
+//TODO: deprecate
 func RLPDecode(data []byte) []byte {
 	char := int(data[0])
 	switch {

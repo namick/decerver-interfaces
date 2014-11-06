@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/eris-ltd/deCerver-interfaces/api"
-	"github.com/eris-ltd/thelonious/ethchain"
-	"github.com/eris-ltd/thelonious/ethreact"
+	"github.com/eris-ltd/thelonious/chain"
+	"github.com/eris-ltd/thelonious/react"
 	"github.com/eris-ltd/thelonious/monk"
 	"time"
 )

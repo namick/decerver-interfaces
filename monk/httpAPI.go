@@ -3,7 +3,7 @@ package monk
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/eris-ltd/thelonious/ethutil"
+	"github.com/eris-ltd/thelonious/util"
 	"github.com/eris-ltd/thelonious/monk"
 	"net/http"
 )

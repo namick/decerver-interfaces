@@ -19,21 +19,29 @@ type Module interface {
 	Name() string
 }
 
-type Database interface {
-	// generalized get/push
-	Get(cmd string, params ...string) (string, error)
-	Push(cmd string, params ...string) (string, error)
+// TODO: interface for history (transacvtions, transaction pool)
 
+type Blockchain interface {
+    KeyManager
+    
+    GetWorldState() WorldState
 	GetState() State
 	GetStorage(target string) Storage
+    GetAccount(target string) Account
     GetStorageAt(target, storage string) string
+
+    GetBlockCount() int
+    GetLatestBlock() string
+    GetBlock(hash string) BlockData //TODO: block-bitch
+
+    IsScript(target string) bool
     
     Tx(addr, amt string) // TODO: return hash
     Msg(addr string, data []string) // TODO: return hash
     Script(file, lang string) string // TODO: remove lang
 
     // TODO: allow set gas/price/amts
-    
+     
     // subscribe to event
     Subscribe(name, event, target string) chan events.Event
 
@@ -42,9 +50,21 @@ type Database interface {
 	// commit continuously
 	AutoCommit(toggle bool)
 	IsAutocommit() bool
+
+}
+
+type KeyManager interface {
+    GetActiveAddress() string
+    GetAddress(n int) (string, error)
+    SetAddress(addr string) error
+    SetAddressN(n int) error
+    NewAddress() (string, error)
+    AddressCount() int
 }
 
 type FileSystem interface {
+    KeyManager
+
     Get(cmd string, params ...string) (interface{}, error)
     Push(cmd string, params ...string) (string, error)
 
@@ -61,10 +81,20 @@ type FileSystem interface {
     Subscribe(name string, event string, target string) chan events.Event
 }
 
+type Account struct{
+    Address string
+    Balance string
+    Nonce string
+    Script string
+    Storage Storage
+
+    isScript bool
+}
+
 // Ordered map for storage in an account or generalized table
 type Storage struct {
 	// hex strings for eth, arrays of strings (cols) for sql dbs
-	Storage map[string]interface{}
+	Storage map[string]string
 	Order   []string
 }
 
@@ -74,9 +104,15 @@ type State struct {
 	Order []string           // ordered addrs and ordered storage inside
 }
 
+type WorldState struct{
+    Accounts map[string] Account
+    Order []string
+}
+
 // File System Node for directory trees
 type FsNode struct{
     Nodes []*FsNode
     Name string
     Hash string
 }
+
