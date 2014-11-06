@@ -20,14 +20,23 @@ type Module interface {
 }
 
 type Database interface {
-	Module
 	// generalized get/push
 	Get(cmd string, params ...string) (string, error)
 	Push(cmd string, params ...string) (string, error)
-	// get ordered map of storage
-	State() State
-	// ordered map of values in storage (generalized sql table)
-	Storage(target string) Storage
+
+	GetState() State
+	GetStorage(target string) Storage
+    GetStorageAt(target, storage string) string
+    
+    Tx(addr, amt string) // TODO: return hash
+    Msg(addr string, data []string) // TODO: return hash
+    Script(file, lang string) string // TODO: remove lang
+
+    // TODO: allow set gas/price/amts
+    
+    // subscribe to event
+    Subscribe(name, event, target string) chan events.Event
+
 	// commit cached data (mine a block)
 	Commit()
 	// commit continuously
@@ -35,9 +44,21 @@ type Database interface {
 	IsAutocommit() bool
 }
 
-// TODO implement this
 type FileSystem interface {
     Get(cmd string, params ...string) (interface{}, error)
+    Push(cmd string, params ...string) (string, error)
+
+    GetBlock(hash string) ([]byte, error)
+    GetFile(hash string) ([]byte, error)
+    GetStream(hash string) (chan []byte, error)
+    GetTree(hash string, depth int) (FsNode, error)
+
+    PushBlock(block []byte) (string, error)
+    PushBlockString(block string) (string, error)
+    PushFile(fpath string) (string, error)
+    PushTree(fpath string, depth int) (string, error)
+
+    Subscribe(name string, event string, target string) chan events.Event
 }
 
 // Ordered map for storage in an account or generalized table
