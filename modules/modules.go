@@ -24,8 +24,8 @@ type Module interface {
 type Blockchain interface {
     KeyManager
     
-    WorldState() WorldState
-	State() State
+    WorldState() *WorldState
+	State() *State
 	Storage(target string) *Storage
     Account(target string) *Account
     StorageAt(target, storage string) string
@@ -54,8 +54,8 @@ type Blockchain interface {
 }
 
 type KeyManager interface {
-    GetActiveAddress() string
-    GetAddress(n int) (string, error)
+    ActiveAddress() string
+    Address(n int) (string, error)
     SetAddress(addr string) error
     SetAddressN(n int) error
     NewAddress(set bool) string
@@ -79,6 +79,7 @@ type FileSystem interface {
     PushTree(fpath string, depth int) (string, error)
 
     Subscribe(name string, event string, target string) chan events.Event
+    UnSubscribe(name string)
 }
 
 type Account struct{
