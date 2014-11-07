@@ -24,15 +24,15 @@ type Module interface {
 type Blockchain interface {
     KeyManager
     
-    GetWorldState() WorldState
-	GetState() State
-	GetStorage(target string) Storage
-    GetAccount(target string) Account
-    GetStorageAt(target, storage string) string
+    WorldState() WorldState
+	State() State
+	Storage(target string) *Storage
+    Account(target string) *Account
+    StorageAt(target, storage string) string
 
-    GetBlockCount() int
-    GetLatestBlock() string
-    GetBlock(hash string) Block 
+    BlockCount() int
+    LatestBlock() string
+    Block(hash string) *Block 
 
     IsScript(target string) bool
     
@@ -86,9 +86,9 @@ type Account struct{
     Balance string
     Nonce string
     Script string
-    Storage Storage
+    Storage *Storage
 
-    isScript bool
+    IsScript bool
 }
 
 // Ordered map for storage in an account or generalized table
@@ -100,12 +100,12 @@ type Storage struct {
 
 // Ordered map for all accounts
 type State struct {
-	State map[string]Storage // map addrs to map of storage to value
+	State map[string]*Storage // map addrs to map of storage to value
 	Order []string           // ordered addrs and ordered storage inside
 }
 
 type WorldState struct{
-    Accounts map[string] Account
+    Accounts map[string] *Account
     Order []string
 }
 
