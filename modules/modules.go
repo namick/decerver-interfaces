@@ -32,20 +32,20 @@ type Blockchain interface {
 
     GetBlockCount() int
     GetLatestBlock() string
-    GetBlock(hash string) BlockData //TODO: block-bitch
+    GetBlock(hash string) Block 
 
     IsScript(target string) bool
     
-    Tx(addr, amt string) // TODO: return hash
-    Msg(addr string, data []string) // TODO: return hash
-    Script(file, lang string) string // TODO: remove lang
+    Tx(addr, amt string) (string, error)
+    Msg(addr string, data []string) (string, error)
+    Script(file, lang string) (string, error)
 
     // TODO: allow set gas/price/amts
      
     // subscribe to event
     Subscribe(name, event, target string) chan events.Event
 
-	// commit cached data (mine a block)
+	// commit cached txs (mine a block)
 	Commit()
 	// commit continuously
 	AutoCommit(toggle bool)
@@ -58,7 +58,7 @@ type KeyManager interface {
     GetAddress(n int) (string, error)
     SetAddress(addr string) error
     SetAddressN(n int) error
-    NewAddress() (string, error)
+    NewAddress(set bool) string
     AddressCount() int
 }
 

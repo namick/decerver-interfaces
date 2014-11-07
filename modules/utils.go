@@ -8,7 +8,7 @@ import (
 	//"github.com/eris-ltd/thelonious/state"
 	//"github.com/eris-ltd/thelonious/util"
 	//"github.com/eris-ltd/thelonious/monk"
-	"github.com/eris-ltd/thelonious/log"
+	"github.com/eris-ltd/thelonious/monklog"
 	"io"
 	"sync"
 	"math/big"
@@ -157,7 +157,7 @@ type AccountMini struct {
 	Value    string
 }
 
-type Account struct {
+type Account2 struct {
 	Contract bool
 	Address  string
 	Nonce    int
@@ -425,6 +425,7 @@ func getTransactionFromTx(trans *Transaction, tx *ethchain.Transaction) {
 }
 
 // TODO: fix up
+/*
 func getAccounts(chain Blockchain) []*AccountMini {
 	accounts := []*AccountMini{}
     worldstate := chain.GetWorldState()
@@ -441,7 +442,7 @@ func getAccounts(chain Blockchain) []*AccountMini {
 		accounts = append(accounts, acc)
 	})
 	return accounts
-}
+}*/
 
 // TODO: deprecate
 func getAccountMiniFromStateObject(account *AccountMini) {
@@ -484,7 +485,7 @@ func getAccountFromStateObject(account *Account, st *ethstate.StateObject) {
 type LogSub struct {
 	Channel  chan string
 	SubId    uint32
-	LogLevel ethlog.LogLevel
+	LogLevel monklog.LogLevel
 	Enabled  bool
 }
 
@@ -492,7 +493,7 @@ func NewStdLogSub() *LogSub {
 	ls := &LogSub{
 		Channel:  make(chan string),
 		SubId:    0,
-		LogLevel: ethlog.LogLevel(5),
+		LogLevel: monklog.LogLevel(5),
 		Enabled:  true,
 	}
 	return ls
@@ -502,17 +503,17 @@ type EthLogger struct {
 	mutex     *sync.Mutex
 	logReader io.Reader
 	logWriter io.Writer
-	logLevel  ethlog.LogLevel
+	logLevel  monklog.LogLevel
 	subs      []*LogSub
 }
 
 func NewEthLogger() *EthLogger {
 	el := &EthLogger{}
 	el.mutex = &sync.Mutex{};
-	el.logLevel = ethlog.LogLevel(5)
+	el.logLevel = monklog.LogLevel(5)
 	el.logReader, el.logWriter = io.Pipe()
 
-	ethlog.AddLogSystem(ethlog.NewStdLogSystem(el.logWriter, log.LstdFlags, el.logLevel))
+	monklog.AddLogSystem(monklog.NewStdLogSystem(el.logWriter, log.LstdFlags, el.logLevel))
 
 	go func(el *EthLogger) {
 		scanner := bufio.NewScanner(el.logReader)
