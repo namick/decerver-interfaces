@@ -429,11 +429,11 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 }
 
 func (bl *BcListener) Close() {
-	bl.bcAPI.bc.Unsubscribe("newBlock")
-	bl.bcAPI.bc.Subscribe("newTx:pre")
-	bl.bcAPI.bc.Subscribe("newTx:pre:fail")
-	bl.bcAPI.bc.Subscribe("newTx:post")
-	bl.bcAPI.bc.Subscribe("newTx:post:fail")
+	bl.bcAPI.bc.UnSubscribe("newBlock")
+	bl.bcAPI.bc.UnSubscribe("newTx:pre")
+	bl.bcAPI.bc.UnSubscribe("newTx:pre:fail")
+	bl.bcAPI.bc.UnSubscribe("newTx:post")
+	bl.bcAPI.bc.UnSubscribe("newTx:post:fail")
 }
 
 func getTimestamp() int {
