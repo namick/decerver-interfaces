@@ -18,14 +18,14 @@ import (
 	"bufio"
 )
 
-type MonkWsAPIFactory struct {
+type WebSocketAPIFactory struct {
 	bc modules.Blockchain
 	ethLogger *EthLogger
 	serviceName string
 }
 
-func NewMonkWsAPIFactory(bc modules.Blockchain) *MonkWsAPIFactory {
-	fact := &MonkWsAPIFactory{
+func NewWebSocketAPIFactory(bc modules.Blockchain) *WebSocketAPIFactory {
+	fact := &WebSocketAPIFactory{
 		bc: bc,
 		ethLogger:   NewEthLogger(),
 		serviceName: "MonkWsAPI",
@@ -33,28 +33,27 @@ func NewMonkWsAPIFactory(bc modules.Blockchain) *MonkWsAPIFactory {
 	return fact
 }
 
-func (fact *MonkWsAPIFactory) Init() {
+func (fact *WebSocketAPIFactory) Init() {
 
 }
 
-func (fact *MonkWsAPIFactory) Shutdown() {
-	// TODO fix
-	//fact.ethChain.Stop()
+func (fact *WebSocketAPIFactory) Shutdown() {
+	
 }
 
-func (fact *MonkWsAPIFactory) ServiceName() string {
+func (fact *WebSocketAPIFactory) ServiceName() string {
 	return fact.serviceName
 }
 
-func (fact *MonkWsAPIFactory) CreateService() api.WsAPIService {
+func (fact *WebSocketAPIFactory) CreateService() api.WsAPIService {
 	
-	service := newMonkWsAPI(fact.bc)
+	service := newWebSocketAPI(fact.bc)
 	service.name = fact.serviceName
 	service.ethLogger = fact.ethLogger
 	return service
 }
 
-type MonkWsAPI struct {
+type WebSocketAPI struct {
 	name        string
 	mappings    map[string]api.WsAPIMethod
 	bc			modules.Blockchain
@@ -64,8 +63,8 @@ type MonkWsAPI struct {
 }
 
 // Create a new handler
-func newMonkWsAPI(bc modules.Blockchain) *MonkWsAPI {
-	bcAPI := &MonkWsAPI{}
+func newWebSocketAPI(bc modules.Blockchain) *WebSocketAPI {
+	bcAPI := &WebSocketAPI{}
 	bcAPI.bc = bc
 
 	bcAPI.mappings = make(map[string]api.WsAPIMethod)
@@ -83,23 +82,23 @@ func newMonkWsAPI(bc modules.Blockchain) *MonkWsAPI {
 	return bcAPI
 }
 
-func (bcAPI *MonkWsAPI) SetConnection(wsConn api.WebSocketObj) {
+func (bcAPI *WebSocketAPI) SetConnection(wsConn api.WebSocketObj) {
 	bcAPI.conn = wsConn
 }
 
-func (bcAPI *MonkWsAPI) Init() {
+func (bcAPI *WebSocketAPI) Init() {
 	bcAPI.ethListener = newEthListener(bcAPI)
 }
 
-func (bcAPI *MonkWsAPI) Shutdown() {
+func (bcAPI *WebSocketAPI) Shutdown() {
 	bcAPI.ethListener.Close()
 }
 
-func (bcAPI *MonkWsAPI) Name() string {
+func (bcAPI *WebSocketAPI) Name() string {
 	return bcAPI.name
 }
 
-func (bcAPI *MonkWsAPI) HandleRPC(rpcReq *api.Request) (*api.Response, error) {
+func (bcAPI *WebSocketAPI) HandleRPC(rpcReq *api.Request) (*api.Response, error) {
 	methodName := rpcReq.Method
 	resp := &api.Response{}
 	if bcAPI.mappings[methodName] == nil {
@@ -118,21 +117,20 @@ func (bcAPI *MonkWsAPI) HandleRPC(rpcReq *api.Request) (*api.Response, error) {
 }
 
 // Add a new method
-func (bcAPI *MonkWsAPI) AddMethod(methodName string, method api.WsAPIMethod, replaceOld bool) error {
+func (bcAPI *WebSocketAPI) AddMethod(methodName string, method api.WsAPIMethod, replaceOld bool) error {
 	if bcAPI.mappings[methodName] != nil {
 		if !replaceOld {
 			return errors.New("Tried to overwrite an already existing method.")
 		} else {
 			fmt.Printf("Overwriting old method for '" + methodName + "'.")
 		}
-
 	}
 	bcAPI.mappings[methodName] = method
 	return nil
 }
 
 // Remove a method
-func (bcAPI *MonkWsAPI) RemoveMethod(methodName string) {
+func (bcAPI *WebSocketAPI) RemoveMethod(methodName string) {
 	if bcAPI.mappings[methodName] == nil {
 		fmt.Printf("Removal failed. There is no handler for '" + methodName + "'.")
 	} else {
@@ -141,45 +139,43 @@ func (bcAPI *MonkWsAPI) RemoveMethod(methodName string) {
 	return
 }
 
-func (bcAPI *MonkWsAPI) MyBalance(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) MyBalance(req *api.Request, resp *api.Response) {
 	// TODO add
-	//retVal := &modules.modules.VString{}
+	retVal := &modules.VString{}
 	// TODO Replace with pipe
-	//myAddr := bcAPI.ethChain.Ethereum.KeyManager().Address()
-	//balance := bcAPI.ethChain.Pipe.Balance(myAddr)
-	// -----------------
-	//retVal.SVal = balance.String()
-	//resp.Result = retVal
+	myAddr := bcAPI.bc.ActiveAddress()
+	retVal.SVal = bcAPI.bc.Account(myAddr).Balance
+	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) MyAddress(req *api.Request, resp *api.Response) {
-	// TODO
-	//retVal := &modules.VString{}
-	//retVal.SVal = hex.EncodeToString(bcAPI.ethChain.Ethereum.KeyManager().Address())
-	//resp.Result = retVal
+func (bcAPI *WebSocketAPI) MyAddress(req *api.Request, resp *api.Response) {
+	retVal := &modules.VString{}
+	// TODO Replace with pipe
+	retVal.SVal = bcAPI.bc.ActiveAddress()
+	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) StartMining(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) StartMining(req *api.Request, resp *api.Response) {
 	retVal := &modules.VBool{}
 	bcAPI.bc.AutoCommit(true)
 	retVal.BVal = true
 	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) StopMining(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) StopMining(req *api.Request, resp *api.Response) {
 	retVal := &modules.VBool{}
 	bcAPI.bc.AutoCommit(false)
 	retVal.BVal = true
 	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) LastBlockNumber(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) LastBlockNumber(req *api.Request, resp *api.Response) {
 	retVal := &modules.VInteger{}
 	retVal.IVal = bcAPI.bc.BlockCount() - 1
 	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) BlockMiniByHash(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) BlockMiniByHash(req *api.Request, resp *api.Response) {
 	params := &modules.VString{}
 	err := json.Unmarshal(*req.Params, params)
 
@@ -189,7 +185,9 @@ func (bcAPI *MonkWsAPI) BlockMiniByHash(req *api.Request, resp *api.Response) {
 	}
 
 	retVal := &modules.BlockMiniData{}
-
+	fmt.Printf("Block %s\n",params.SVal)
+	return
+	
 	block := bcAPI.bc.Block(params.SVal)
 	if block == nil {
 		resp.Error = "No block with hash: " + params.SVal
@@ -197,10 +195,12 @@ func (bcAPI *MonkWsAPI) BlockMiniByHash(req *api.Request, resp *api.Response) {
 	}
 
 	getBlockMiniDataFromBlock(bcAPI.bc, retVal, block)
+	
 	resp.Result = retVal
+	
 }
 
-func (bcAPI *MonkWsAPI) BlockByHash(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) BlockByHash(req *api.Request, resp *api.Response) {
 	params := &modules.VString{}
 	err := json.Unmarshal(*req.Params, params)
 
@@ -220,7 +220,7 @@ func (bcAPI *MonkWsAPI) BlockByHash(req *api.Request, resp *api.Response) {
 	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) Account(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) Account(req *api.Request, resp *api.Response) {
 	params := &modules.VString{}
 	err := json.Unmarshal(*req.Params, params)
 
@@ -233,7 +233,7 @@ func (bcAPI *MonkWsAPI) Account(req *api.Request, resp *api.Response) {
 	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) Transact(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) Transact(req *api.Request, resp *api.Response) {
 	params := &modules.TxIndata{}
 	err := json.Unmarshal(*req.Params, params)
 
@@ -251,7 +251,7 @@ func (bcAPI *MonkWsAPI) Transact(req *api.Request, resp *api.Response) {
 	resp.Result = retVal
 }
 
-func (bcAPI *MonkWsAPI) WorldState(req *api.Request, resp *api.Response) {
+func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 	// We do this all in one go.
 	blocks := getBlockChain(bcAPI.bc)
 	// Let the client know how many blocks there are.
@@ -300,7 +300,7 @@ func (bcAPI *MonkWsAPI) WorldState(req *api.Request, resp *api.Response) {
 }
 
 type EthListener struct {
-	mnk               *MonkWsAPI
+	mnk               *WebSocketAPI
 	txPreChannel      chan events.Event
 	txPreFailChannel  chan events.Event
 	txPostChannel     chan events.Event
@@ -310,7 +310,7 @@ type EthListener struct {
 	logSub            *LogSub
 }
 
-func newEthListener(mnk *MonkWsAPI) *EthListener {
+func newEthListener(mnk *WebSocketAPI) *EthListener {
 	el := &EthListener{}
 	el.mnk = mnk
 	
