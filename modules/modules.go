@@ -44,6 +44,7 @@ type Blockchain interface {
      
     // subscribe to event
     Subscribe(name, event, target string) chan events.Event
+    UnSubscribe(name string)
 
 	// commit cached txs (mine a block)
 	Commit()
@@ -81,39 +82,3 @@ type FileSystem interface {
     Subscribe(name string, event string, target string) chan events.Event
     UnSubscribe(name string)
 }
-
-type Account struct{
-    Address string
-    Balance string
-    Nonce string
-    Script string
-    Storage *Storage
-
-    IsScript bool
-}
-
-// Ordered map for storage in an account or generalized table
-type Storage struct {
-	// hex strings for eth, arrays of strings (cols) for sql dbs
-	Storage map[string]string
-	Order   []string
-}
-
-// Ordered map for all accounts
-type State struct {
-	State map[string]*Storage // map addrs to map of storage to value
-	Order []string           // ordered addrs and ordered storage inside
-}
-
-type WorldState struct{
-    Accounts map[string] *Account
-    Order []string
-}
-
-// File System Node for directory trees
-type FsNode struct{
-    Nodes []*FsNode
-    Name string
-    Hash string
-}
-

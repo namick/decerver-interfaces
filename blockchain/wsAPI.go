@@ -10,25 +10,20 @@ import (
 	"github.com/eris-ltd/deCerver-interfaces/api"
 	"github.com/eris-ltd/deCerver-interfaces/modules"
 	"github.com/eris-ltd/deCerver-interfaces/events"
+	"github.com/eris-ltd/deCerver-interfaces/util"
 	"time"
-	"github.com/eris-ltd/thelonious/monklog"
-	"io"
-	"sync"
-	"log"
-	"bufio"
+	"strings"
 )
 
 type WebSocketAPIFactory struct {
 	bc modules.Blockchain
-	ethLogger *EthLogger
 	serviceName string
 }
 
 func NewWebSocketAPIFactory(bc modules.Blockchain) *WebSocketAPIFactory {
 	fact := &WebSocketAPIFactory{
 		bc: bc,
-		ethLogger:   NewEthLogger(),
-		serviceName: "MonkWsAPI",
+		serviceName: "BlockchainWs",
 	}
 	return fact
 }
@@ -46,10 +41,8 @@ func (fact *WebSocketAPIFactory) ServiceName() string {
 }
 
 func (fact *WebSocketAPIFactory) CreateService() api.WsAPIService {
-	
 	service := newWebSocketAPI(fact.bc)
 	service.name = fact.serviceName
-	service.ethLogger = fact.ethLogger
 	return service
 }
 
@@ -58,14 +51,17 @@ type WebSocketAPI struct {
 	mappings    map[string]api.WsAPIMethod
 	bc			modules.Blockchain
 	conn        api.WebSocketObj
-	ethListener *EthListener
-	ethLogger   *EthLogger
+	bcListener *BcListener
+	blockQueue *util.BlockMiniQueue
+	wsUpdated  bool
 }
 
 // Create a new handler
 func newWebSocketAPI(bc modules.Blockchain) *WebSocketAPI {
 	bcAPI := &WebSocketAPI{}
 	bcAPI.bc = bc
+	bcAPI.blockQueue = util.NewBlockMiniQueue()
+	bcAPI.wsUpdated = false
 
 	bcAPI.mappings = make(map[string]api.WsAPIMethod)
 	bcAPI.mappings["MyBalance"] = bcAPI.MyBalance
@@ -87,11 +83,11 @@ func (bcAPI *WebSocketAPI) SetConnection(wsConn api.WebSocketObj) {
 }
 
 func (bcAPI *WebSocketAPI) Init() {
-	bcAPI.ethListener = newEthListener(bcAPI)
+	bcAPI.bcListener = newBcListener(bcAPI)
 }
 
 func (bcAPI *WebSocketAPI) Shutdown() {
-	bcAPI.ethListener.Close()
+	bcAPI.bcListener.Close()
 }
 
 func (bcAPI *WebSocketAPI) Name() string {
@@ -208,8 +204,8 @@ func (bcAPI *WebSocketAPI) BlockByHash(req *api.Request, resp *api.Response) {
 		resp.Error = err.Error()
 		return
 	}
-
-	retVal := &modules.Block{}
+	//params.SVal = "0x" + params.SVal
+	fmt.Println("Block being fetched: " + params.SVal)
 
 	block := bcAPI.bc.Block(params.SVal)
 	if block == nil {
@@ -217,7 +213,7 @@ func (bcAPI *WebSocketAPI) BlockByHash(req *api.Request, resp *api.Response) {
 		return
 	}
 	
-	resp.Result = retVal
+	resp.Result = block
 }
 
 func (bcAPI *WebSocketAPI) Account(req *api.Request, resp *api.Response) {
@@ -234,20 +230,51 @@ func (bcAPI *WebSocketAPI) Account(req *api.Request, resp *api.Response) {
 }
 
 func (bcAPI *WebSocketAPI) Transact(req *api.Request, resp *api.Response) {
+	
 	params := &modules.TxIndata{}
 	err := json.Unmarshal(*req.Params, params)
-
+	
 	if err != nil {
+		fmt.Printf("Tx indata error: %s\n",err.Error())
 		resp.Error = err.Error()
 		return
 	}
-
+	
+	fmt.Printf("Tx indata: %v\n",params)
+	
 	retVal := &modules.TxReceipt{}
-	// TODO check sender.
-	//err = createTx(bcAPI.ethChain, params.Recipient, params.Value, params.Gas, params.GasCost, params.Data, retVal)
-	//if err != nil {
-	//	retVal.Error = err.Error()
-	//}
+	
+	// Contract create
+	if params.Recipient == "" {
+		fmt.Println("Processing contract create tx")
+		addr, err := bcAPI.bc.Script(params.Data,"lll")
+		if err != nil {
+			retVal.Compiled = false
+			retVal.Error = err.Error()
+			retVal.Success = false
+		} else {
+			retVal.Address = addr
+			retVal.Compiled = true
+			retVal.Success = true
+		}
+	// Tx	
+	} else if params.Data == "" {
+		fmt.Println("Processing tx")
+		hash, _ := bcAPI.bc.Tx(params.Recipient,params.Value)
+		retVal.Success = true
+		retVal.Hash = hash
+	// It's a message
+	} else {
+		fmt.Println("Processing message")
+		txData := strings.Split(params.Data,"\n")
+		for idx, val := range txData {
+			txData[idx] = strings.Trim(val," ")
+		}
+		
+		hash, _ := bcAPI.bc.Msg(params.Recipient,txData)
+		retVal.Success = true
+		retVal.Hash = hash
+	}
 	resp.Result = retVal
 }
 
@@ -268,6 +295,7 @@ func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 		resp.Result = blocks[i]
 		resp.Timestamp = getTimestamp()
 		bcAPI.conn.WriteTextMsg(resp)
+		time.Sleep(50)
 	}
 	
 	accounts := bcAPI.bc.WorldState()
@@ -289,187 +317,125 @@ func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 		resp.Result = accMini
 		resp.Timestamp = getTimestamp()
 		bcAPI.conn.WriteTextMsg(resp)
+		time.Sleep(50)
 	}
-
+	
+	time.Sleep(200)
+	
+	// Now flush the generated block queue
+	for !bcAPI.blockQueue.IsEmpty() {
+		// Finalize.
+		resp = &api.Response{}
+		resp.Id = "BlockAdded"
+		resp.Result = bcAPI.blockQueue.Pop()
+		resp.Timestamp = getTimestamp()
+		bcAPI.conn.WriteTextMsg(resp)
+	}
+	
+	bcAPI.wsUpdated = true
+	
 	// Finalize.
 	resp = &api.Response{}
 	resp.Id = "WorldStateDone"
 	resp.Result = &modules.NoArgs{}
 	resp.Timestamp = getTimestamp()
 	bcAPI.conn.WriteTextMsg(resp)
+	
+	
 }
 
-type EthListener struct {
-	mnk               *WebSocketAPI
+// This object is used to subscribe directly to the blockchain rather then going through
+// the global eventprocessor.
+type BcListener struct {
+	bcAPI             *WebSocketAPI
 	txPreChannel      chan events.Event
 	txPreFailChannel  chan events.Event
 	txPostChannel     chan events.Event
 	txPostFailChannel chan events.Event
 	blockChannel      chan events.Event
 	stopChannel       chan bool
-	logSub            *LogSub
 }
 
-func newEthListener(mnk *WebSocketAPI) *EthListener {
-	el := &EthListener{}
-	el.mnk = mnk
+func newBcListener(bcAPI *WebSocketAPI) *BcListener {
+	bl := &BcListener{}
+	bl.bcAPI = bcAPI
 	
-	el.blockChannel = make(chan events.Event, 10)
-	el.txPreChannel = make(chan events.Event, 10)
-	el.txPreFailChannel = make(chan events.Event, 10)
-	el.txPostChannel = make(chan events.Event, 10)
-	el.txPostFailChannel = make(chan events.Event, 10)
-	el.stopChannel = make(chan bool)
-	el.blockChannel = el.mnk.bc.Subscribe("","newBlock", "")
-	el.txPreChannel = el.mnk.bc.Subscribe("","newTx:pre", "")
-	el.txPreFailChannel = el.mnk.bc.Subscribe("","newTx:pre:fail", "")
-	el.txPostChannel = el.mnk.bc.Subscribe("","newTx:post", "")
-	el.txPostFailChannel = el.mnk.bc.Subscribe("","newTx:post:fail", "")
-	
-	el.logSub = NewStdLogSub()
-	el.logSub.SubId = el.mnk.conn.SessionId()
-	el.mnk.ethLogger.AddSub(el.logSub)
+	bl.blockChannel = make(chan events.Event, 10)
+	bl.txPreChannel = make(chan events.Event, 10)
+	bl.txPreFailChannel = make(chan events.Event, 10)
+	bl.txPostChannel = make(chan events.Event, 10)
+	bl.txPostFailChannel = make(chan events.Event, 10)
+	bl.stopChannel = make(chan bool)
+	bl.blockChannel = bl.bcAPI.bc.Subscribe("","newBlock", "")
+	bl.txPreChannel = bl.bcAPI.bc.Subscribe("","newTx:pre", "")
+	bl.txPreFailChannel = bl.bcAPI.bc.Subscribe("","newTx:pre:fail", "")
+	bl.txPostChannel = bl.bcAPI.bc.Subscribe("","newTx:post", "")
+	bl.txPostFailChannel = bl.bcAPI.bc.Subscribe("","newTx:post:fail", "")
 
-	go func(el *EthListener) {
+	go func(bl *BcListener) {
 		for {
 			select {
-			case evt := <-el.blockChannel:
+			case evt := <- bl.blockChannel:
 				block, _ := evt.Resource.(*modules.Block)
 				fmt.Println("Block added")
 				resp := &api.Response{}
 				resp.Id = "BlockAdded"
 				bd := &modules.BlockMiniData{}
-				getBlockMiniDataFromBlock(el.mnk.bc, bd, block)
-				resp.Result = bd
-				resp.Timestamp = getTimestamp()
-				el.mnk.conn.WriteTextMsg(resp)
-			case evt := <-el.txPreChannel:
+				getBlockMiniDataFromBlock(bl.bcAPI.bc, bd, block)
+				if bl.bcAPI.wsUpdated == false {
+					bl.bcAPI.blockQueue.Push(bd)
+				} else {
+					resp.Result = bd
+					resp.Timestamp = getTimestamp()
+					bl.bcAPI.conn.WriteTextMsg(resp)
+				}
+			case evt := <-bl.txPreChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
 				resp := &api.Response{}
 				resp.Id = "TxPre"
 				resp.Result = tx
 				resp.Timestamp = getTimestamp()
-				el.mnk.conn.WriteTextMsg(resp)
-			case evt := <-el.txPreFailChannel:
+				bl.bcAPI.conn.WriteTextMsg(resp)
+			case evt := <-bl.txPreFailChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
 				resp := &api.Response{}
 				resp.Id = "TxPreFail"
 				resp.Result = tx
 				resp.Error = tx.Error
 				resp.Timestamp = getTimestamp()
-				el.mnk.conn.WriteTextMsg(resp)
-			case evt := <-el.txPostChannel:
+				bl.bcAPI.conn.WriteTextMsg(resp)
+			case evt := <-bl.txPostChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
 				resp := &api.Response{}
 				resp.Id = "TxPost"
 				resp.Result = tx
 				resp.Timestamp = getTimestamp()
-				el.mnk.conn.WriteTextMsg(resp)
-			case evt := <-el.txPostFailChannel:
+				bl.bcAPI.conn.WriteTextMsg(resp)
+			case evt := <- bl.txPostFailChannel:
 				tx , _ := evt.Resource.(*modules.Transaction)
 				resp := &api.Response{}
 				resp.Id = "TxPostFail"
 				resp.Result = tx
 				resp.Error = tx.Error
 				resp.Timestamp = getTimestamp()
-				el.mnk.conn.WriteTextMsg(resp)
-			case txt := <-el.logSub.Channel:
-				resp := &api.Response{}
-				resp.Id = "Log"
-				resp.Result = &modules.VString{SVal: txt}
-				resp.Timestamp = getTimestamp()
-				el.mnk.conn.WriteTextMsg(resp)
-			case <-el.stopChannel:
+				bl.bcAPI.conn.WriteTextMsg(resp)
+			case <-bl.stopChannel:
 				// Quit this
 				return
 			}
 		}
-	}(el)
-	return el
+	}(bl)
+	return bl
 }
 
-func (el *EthListener) Close() {
-	//el.mnk.bc.Unsubscribe()
-	/*
-	rctr := el.mnk.ethChain.Ethereum.Reactor()
-	rctr.Unsubscribe("newBlock", el.blockChannel)
-	rctr.Unsubscribe("newTx:pre", el.txPreChannel)
-	rctr.Unsubscribe("newTx:pre:fail", el.txPreFailChannel)
-	rctr.Unsubscribe("newTx:post", el.txPostChannel)
-	rctr.Unsubscribe("newTx:post:fail", el.txPostFailChannel)
-	el.mnk.ethLogger.RemoveSub(el.logSub)
-	*/
+func (bl *BcListener) Close() {
+	bl.bcAPI.bc.Unsubscribe("newBlock")
+	bl.bcAPI.bc.Subscribe("newTx:pre")
+	bl.bcAPI.bc.Subscribe("newTx:pre:fail")
+	bl.bcAPI.bc.Subscribe("newTx:post")
+	bl.bcAPI.bc.Subscribe("newTx:post:fail")
 }
 
 func getTimestamp() int {
 	return int(time.Now().In(time.UTC).UnixNano() >> 6)
-}
-
-// TODO while testing
-type LogSub struct {
-	Channel  chan string
-	SubId    uint32
-	LogLevel monklog.LogLevel
-	Enabled  bool
-}
-
-func NewStdLogSub() *LogSub {
-	ls := &LogSub{
-		Channel:  make(chan string),
-		SubId:    0,
-		LogLevel: monklog.LogLevel(5),
-		Enabled:  true,
-	}
-	return ls
-}
-
-type EthLogger struct {
-	mutex     *sync.Mutex
-	logReader io.Reader
-	logWriter io.Writer
-	logLevel  monklog.LogLevel
-	subs      []*LogSub
-}
-
-func NewEthLogger() *EthLogger {
-	el := &EthLogger{}
-	el.mutex = &sync.Mutex{};
-	el.logLevel = monklog.LogLevel(5)
-	el.logReader, el.logWriter = io.Pipe()
-
-	monklog.AddLogSystem(monklog.NewStdLogSystem(el.logWriter, log.LstdFlags, el.logLevel))
-
-	go func(el *EthLogger) {
-		scanner := bufio.NewScanner(el.logReader)
-		for scanner.Scan() {
-			text := scanner.Text()
-			el.mutex.Lock()
-			for _, sub := range el.subs {
-				sub.Channel <- text
-			}
-			el.mutex.Unlock()
-		}
-	}(el)
-	return el
-}
-
-func (el *EthLogger) AddSub(sub *LogSub) {
-	el.mutex.Lock()
-	el.subs = append(el.subs, sub)
-	el.mutex.Unlock()
-}
-
-func (el *EthLogger) RemoveSub(sub *LogSub) {
-	el.mutex.Lock()
-	theIdx := -1
-	for idx, s := range el.subs {
-		if sub.SubId == s.SubId {
-			theIdx = idx
-			break
-		}
-	}
-	if theIdx >= 0 {
-		el.subs = append(el.subs[:theIdx], el.subs[theIdx+1:]...)
-	}
-	el.mutex.Unlock()
 }

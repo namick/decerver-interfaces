@@ -129,7 +129,7 @@ func getBlockMiniDataFromBlock(chain modules.Blockchain, reply *modules.BlockMin
 		} else {
 			am.Address = addr
 			am.Nonce = acc.Nonce
-			am.Value = acc.Balance
+			am.Balance = acc.Balance
 			am.Flag = flag
 		}
 		reply.AccountsAffected[ctr] = am
@@ -210,7 +210,7 @@ func createTx(chain Blockchain, recipient, valueStr, gasStr, gasPriceStr, script
 func getAccountMiniFromAccount(am *modules.AccountMini, acc *modules.Account) {
 	am.Address = acc.Address
 	am.Contract = len(acc.Script) > 0
-	am.Value = acc.Balance
+	am.Balance = acc.Balance
 	am.Nonce = acc.Nonce
 	return
 }
