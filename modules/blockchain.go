@@ -19,15 +19,19 @@ type VInteger struct {
 	IVal int
 }
 
+type Addresses struct {
+	ActiveAddress string
+	AddressList []string
+}
 
-type Account struct{
-    Address string
-    Balance string
-    Nonce string
-    Script string
-    Storage *Storage
+type Account struct {
+	Address string
+	Balance string
+	Nonce   string
+	Script  string
+	Storage *Storage
 
-    IsScript bool
+	IsScript bool
 }
 
 // Ordered map for storage in an account or generalized table
@@ -40,12 +44,12 @@ type Storage struct {
 // Ordered map for all accounts
 type State struct {
 	State map[string]*Storage // map addrs to map of storage to value
-	Order []string           // ordered addrs and ordered storage inside
+	Order []string            // ordered addrs and ordered storage inside
 }
 
-type WorldState struct{
-    Accounts map[string] *Account
-    Order []string
+type WorldState struct {
+	Accounts map[string]*Account
+	Order    []string
 }
 
 type BlockMiniData struct {
@@ -79,8 +83,8 @@ type Block struct {
 	GasLimit     string
 	GasUsed      string
 	MinGasPrice  string
-	TxRoot        string
-	UncleRoot     string
+	TxRoot       string
+	UncleRoot    string
 }
 
 type Transaction struct {
@@ -102,7 +106,7 @@ type TxIndata struct {
 	GasCost   string
 	Value     string
 	// endline is the separator for tx data. Each string is padded with 0's to become 32 bytes.
-	Data      string
+	Data string
 }
 
 type TxReceipt struct {
