@@ -431,6 +431,9 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 			select {
 			case evt := <-bl.blockChannel:
 				block, _ := evt.Resource.(*modules.Block)
+				if block == nil {
+					continue;
+				} 
 				fmt.Println("Block added")
 				resp := &api.Response{}
 				resp.Id = "BlockAdded"
@@ -445,6 +448,9 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				}
 			case evt := <-bl.txPreChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
+				if tx == nil {
+					continue;
+				}
 				resp := &api.Response{}
 				resp.Id = "TxPre"
 				resp.Result = tx
@@ -452,6 +458,9 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				bl.bcAPI.conn.WriteTextMsg(resp)
 			case evt := <-bl.txPreFailChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
+				if tx == nil {
+					continue;
+				}
 				resp := &api.Response{}
 				resp.Id = "TxPreFail"
 				resp.Result = tx
@@ -460,6 +469,9 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				bl.bcAPI.conn.WriteTextMsg(resp)
 			case evt := <-bl.txPostChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
+				if tx == nil {
+					continue;
+				}
 				resp := &api.Response{}
 				resp.Id = "TxPost"
 				resp.Result = tx
@@ -467,6 +479,9 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				bl.bcAPI.conn.WriteTextMsg(resp)
 			case evt := <-bl.txPostFailChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
+				if tx == nil {
+					continue;
+				}
 				resp := &api.Response{}
 				resp.Id = "TxPostFail"
 				resp.Result = tx
@@ -485,14 +500,19 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 func (bl *BcListener) Close() {
 	idStr := strconv.Itoa(int(bl.bcAPI.conn.SessionId()))
 	c := "newBlock"
+	fmt.Printf("Unregister: " + c + idStr)
 	bl.bcAPI.bc.UnSubscribe(c + idStr)
 	c = "newTx:pre"
+	fmt.Printf("Unregister: " + c + idStr)
 	bl.bcAPI.bc.UnSubscribe(c + idStr)
 	c = "newTx:pre:fail"
+	fmt.Printf("Unregister: " + c + idStr)
 	bl.bcAPI.bc.UnSubscribe(c + idStr)
 	c = "newTx:post"
+	fmt.Printf("Unregister: " + c + idStr)
 	bl.bcAPI.bc.UnSubscribe(c + idStr)
 	c = "newTx:post:fail"
+	fmt.Printf("Unregister: " + c + idStr)
 	bl.bcAPI.bc.UnSubscribe(c + idStr)
 }
 
