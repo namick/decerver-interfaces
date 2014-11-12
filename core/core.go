@@ -14,6 +14,7 @@ type DeCerver interface {
 	ReadConfig(filename string)
 	WriteConfig(cfg *DCConfig)
 	GetConfig() *DCConfig
+	GetPaths() FileIO
 }
 
 type FileIO interface {
@@ -35,6 +36,7 @@ type Runtime interface {
 	BindScriptObject(name string, val interface{}) error
 	LoadScriptFile(fileName string) error
 	LoadScriptFiles(fileName ...string) error
+	AddScript(script string) error
 	RunAction(path []string, actionName string, params interface{}) ([]string, error)
 	CallFuncOnObj(objName, funcName string, params ...interface{})
 	RunFunction(funcName string, params interface{}) ([]string, error)
