@@ -9,10 +9,10 @@ import (
     "encoding/hex"
     "time"
 
-    decore "github.com/eris-ltd/deCerver-interfaces/core"
-    api "github.com/eris-ltd/deCerver-interfaces/api"
-    events "github.com/eris-ltd/deCerver-interfaces/events"
-    modules "github.com/eris-ltd/deCerver-interfaces/modules"
+    decore "github.com/eris-ltd/decerver-interfaces/core"
+    api "github.com/eris-ltd/decerver-interfaces/api"
+    events "github.com/eris-ltd/decerver-interfaces/events"
+    modules "github.com/eris-ltd/decerver-interfaces/modules"
 
     core "github.com/jbenet/go-ipfs/core"
     cmds "github.com/jbenet/go-ipfs/core/commands"
@@ -34,7 +34,7 @@ var (
 )
 
 
-// implements deCerver-interface module
+// implements decerver-interface module
 type IpfsModule struct{
     ipfs Ipfs
 }

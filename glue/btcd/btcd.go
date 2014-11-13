@@ -10,9 +10,9 @@ import (
 	"time"
     "fmt"
 
-	"github.com/eris-ltd/deCerver-interfaces/api"
-	"github.com/eris-ltd/deCerver-interfaces/core"
-	"github.com/eris-ltd/deCerver-interfaces/events"
+	"github.com/eris-ltd/decerver-interfaces/api"
+	"github.com/eris-ltd/decerver-interfaces/core"
+	"github.com/eris-ltd/decerver-interfaces/events"
 
     rpc "github.com/conformal/btcrpcclient"
 	"github.com/conformal/btcutil"

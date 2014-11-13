@@ -6,7 +6,7 @@ import (
     "time"
     "encoding/hex"
     "github.com/eris-ltd/glululemon/ipfs"
-    "github.com/eris-ltd/deCerver-interfaces/modules"
+    "github.com/eris-ltd/decerver-interfaces/modules"
 )
 
 

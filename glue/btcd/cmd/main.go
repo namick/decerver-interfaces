@@ -1,13 +1,13 @@
 package main
 
 import (
-    glu "github.com/eris-ltd/glululemon"
+    btcd "github.com/eris-ltd/decerver-interfaces/glue/btcd"
     "time"
     "fmt"
 )
 
 func main(){
-    b := glu.NewBtcd()
+    b := btcd.NewBtcd()
     b.Init()
     b.Start()
     _, err := b.Get("newwallet", "mypassphraseyoumuthafuckaaaaaa")

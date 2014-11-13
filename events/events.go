@@ -6,7 +6,7 @@ package events
 import (
 	"time"
 	"fmt"
-	"github.com/eris-ltd/deCerver-interfaces/core"
+	"github.com/eris-ltd/decerver-interfaces/core"
 )
 
 // This interface allow modules to subscribe to and publish events. It is implemented by the 

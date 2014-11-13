@@ -4,7 +4,7 @@ import (
 )
 
 type DCConfig struct {
-	RootDir    string `json:"deCerverDirectory"`
+	RootDir    string `json:"decerverDirectory"`
 	LogFile    string `json:"logFile"`
 	MaxClients int    `json:"maxClients"`
 	Port       int    `json:"portNumber"`

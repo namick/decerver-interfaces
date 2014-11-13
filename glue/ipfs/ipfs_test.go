@@ -5,7 +5,7 @@ import (
     "io/ioutil"
     "os"
     "testing"
-    modules "github.com/eris-ltd/deCerver-interfaces/modules"
+    modules "github.com/eris-ltd/decerver-interfaces/modules"
 )
 
 var (
