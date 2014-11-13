@@ -1,19 +1,19 @@
 package util
 
-// Simple id pool. Lets you
+// Simple id pool. Lets you get and release ids.
 import (
 	"container/list"
 )
+
+type IdPool struct {
+	ids *list.List
+}
 
 // Keeps a pool of integers.
 func NewIdPool(totNum uint32) *IdPool {
 	idPool := &IdPool{}
 	idPool.init(totNum)
 	return idPool
-}
-
-type IdPool struct {
-	ids *list.List
 }
 
 // We start from 1, so that 0 is not used as an id.

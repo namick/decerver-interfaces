@@ -1,6 +1,5 @@
 package modules
 
-
 type NoArgs struct {
 }
 
@@ -18,6 +17,39 @@ type VBool struct {
 
 type VInteger struct {
 	IVal int
+}
+
+type Addresses struct {
+	ActiveAddress string
+	AddressList []string
+}
+
+type Account struct {
+	Address string
+	Balance string
+	Nonce   string
+	Script  string
+	Storage *Storage
+
+	IsScript bool
+}
+
+// Ordered map for storage in an account or generalized table
+type Storage struct {
+	// hex strings for eth, arrays of strings (cols) for sql dbs
+	Storage map[string]string
+	Order   []string
+}
+
+// Ordered map for all accounts
+type State struct {
+	State map[string]*Storage // map addrs to map of storage to value
+	Order []string            // ordered addrs and ordered storage inside
+}
+
+type WorldState struct {
+	Accounts map[string]*Account
+	Order    []string
 }
 
 type BlockMiniData struct {
@@ -51,8 +83,8 @@ type Block struct {
 	GasLimit     string
 	GasUsed      string
 	MinGasPrice  string
-	TxRoot        string
-	UncleRoot     string
+	TxRoot       string
+	UncleRoot    string
 }
 
 type Transaction struct {
@@ -73,7 +105,8 @@ type TxIndata struct {
 	Gas       string
 	GasCost   string
 	Value     string
-	Data      string
+	// endline is the separator for tx data. Each string is padded with 0's to become 32 bytes.
+	Data string
 }
 
 type TxReceipt struct {
@@ -90,5 +123,5 @@ type AccountMini struct {
 	Contract bool
 	Address  string
 	Nonce    string
-	Value    string
+	Balance  string
 }
