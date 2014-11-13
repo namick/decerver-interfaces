@@ -1,9 +1,9 @@
 package modules
 
 import (
-	"github.com/eris-ltd/deCerver-interfaces/api"
-	"github.com/eris-ltd/deCerver-interfaces/core"
-	"github.com/eris-ltd/deCerver-interfaces/events"
+	"github.com/eris-ltd/decerver-interfaces/api"
+	"github.com/eris-ltd/decerver-interfaces/core"
+	"github.com/eris-ltd/decerver-interfaces/events"
 )
 
 type ModuleInfo struct {
@@ -20,7 +20,7 @@ type AuthorInfo struct {
 }
 
 type Module interface {
-	// For registering with deCerver.
+	// For registering with decerver.
 	Register(fileIO core.FileIO, registry api.ApiRegistry, runtime core.Runtime, eReg events.EventRegistry) error
 	Init() error
 	Start() error

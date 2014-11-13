@@ -1,8 +1,8 @@
 package api
 
-// The deCerver API
+// The decerver API
 //
-// There are two ways to communicate with deCerver. The first way is stateless, via http-based
+// There are two ways to communicate with decerver. The first way is stateless, via http-based
 // rpc. The RPC protocol we use is JSON-RPC 2.0 (http://www.jsonrpc.org/specification), and
 // the implementation we use is http://www.gorillatoolkit.org/pkg/rpc. The site contains a good
 // example on how to write an RPC service. Basically, an rpc function takes three arguments -
@@ -16,7 +16,7 @@ package api
 //
 // TODO Write up the websocket rpc protocol and explain how to create a service.
 //
-// Stateful connections is the normal way to communicate between a UI and deCerver, as it allows
+// Stateful connections is the normal way to communicate between a UI and decerver, as it allows
 // two-way communication. Http can be used in cases when you only want to do some occasional polling.
 import (
 	"encoding/json"

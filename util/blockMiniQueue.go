@@ -3,7 +3,7 @@ package util
 import (
 	"container/list"
 	"sync"
-	"github.com/eris-ltd/deCerver-interfaces/modules"
+	"github.com/eris-ltd/decerver-interfaces/modules"
 )
 
 

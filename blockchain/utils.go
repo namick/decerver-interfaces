@@ -2,7 +2,7 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/eris-ltd/deCerver-interfaces/modules"
+	"github.com/eris-ltd/decerver-interfaces/modules"
 )
 
 const (
