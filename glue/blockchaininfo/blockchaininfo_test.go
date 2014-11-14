@@ -2,10 +2,7 @@ package blockchaininfo
 
 import (
 	"fmt"
-	// "log"
-	// "io/ioutil"
-	// "os"
-	// "strconv"
+	"time"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 	"testing"
 )
@@ -84,4 +81,13 @@ func TestAccount(t *testing.T) {
 	if acct1Res.Nonce != "2" {
 		t.Fatalf("Incorrect nonce. Expected: %s, Got: %s. Check https://blockchain.info/address/15v4EdEsnt367mgUdqSvbS7xExXTwKWoTo first.", 2, acct1Res.Nonce)
 	}
+}
+
+// Note these will take time so not ideal to run them all the time.
+func TestBlockPolling(t *testing.T) {
+	fmt.Println("Hold Fast. Long Time coming.")
+	_ = BlockChainInfo.startPollBlocks()
+	interval, _ := time.ParseDuration("25m")
+	time.Sleep(interval)
+	BlockChainInfo.stopPollBlocks()
 }

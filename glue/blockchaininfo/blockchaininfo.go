@@ -8,6 +8,7 @@ import (
     "strconv"
     "log"
     "fmt"
+    "time"
 
 	"github.com/eris-ltd/decerver-interfaces/api"
 	"github.com/eris-ltd/decerver-interfaces/core"
@@ -19,10 +20,14 @@ import (
 
 type BlkChainInfo struct {
 
-    BciApi *blockchain.BlockChain
-    Addresses *modules.Addresses
-    config string
-	chans map[string]chan events.Event
+    BciApi          *blockchain.BlockChain
+    Addresses       *modules.Addresses
+    pollAddresses   chan bool
+    recentestBlock  string
+    pollBlocks      chan bool
+    addressesToPoll map[string]int64
+    config          string
+	chans           map[string]chan events.Event
 
 }
 
@@ -45,6 +50,7 @@ func (b *BlkChainInfo) Init() error {
     bc := blockchain.New(http.DefaultClient)
     b.BciApi = bc
     b.Addresses = &modules.Addresses{}
+    b.chans = make(map[string]chan events.Event)
 
     cfg, err := ioutil.ReadFile(b.config)
     if err != nil {
@@ -171,7 +177,7 @@ func (b *BlkChainInfo) Tx(addr, amt string) (string, error) {
     }
     sp := &blockchain.SendPayment{
         Amount:    int64(amtt),
-        ToAddress: addr
+        ToAddress: addr,
     }
     if err = b.BciApi.Request(sp); err != nil {
         return "", err
@@ -191,15 +197,24 @@ func (b *BlkChainInfo) Script(file, lang string) (string, error) {
     return "", nil
 }
 
-// todo
+// todo -- address watcher; newBlock
 func (b *BlkChainInfo) Subscribe(name, event, target string) chan events.Event {
     ch := make(chan events.Event)
+    switch name {
+    case "newBlock":
+        ch = b.startPollBlocks()
+    case "addr":
+        // b.startPollAddresses()
+    }
     return ch
 }
 
 // todo
 func (b *BlkChainInfo) UnSubscribe(name string) {
-
+    switch name {
+    case "newBlock":
+        b.stopPollBlocks()
+    }
 }
 
 // Commit not supported by this module which is an API Wrapper around Blockchain.info
@@ -324,3 +339,71 @@ func bciAccountToDecerverAccount(a1 *blockchain.Address, a2 *modules.Account) {
     a2.Nonce    = strconv.Itoa(int(a1.TransactionCount))
     a2.IsScript = false
 }
+
+func (b *BlkChainInfo) startPollBlocks() chan events.Event {
+    interval, _ := time.ParseDuration("2m")
+    ticker := time.NewTicker(interval)
+    b.pollAddresses = make(chan bool)
+    ch := make(chan events.Event)
+    b.chans["newBlock"] = ch
+    go b.pollBlock(ticker)
+    return ch
+}
+
+func (b *BlkChainInfo) stopPollBlocks() {
+    b.pollAddresses <- true
+}
+
+func (b *BlkChainInfo) pollBlock(ticker *time.Ticker) {
+    fmt.Println("[blockchain.info mod] Starting Poller.")
+    b.recentestBlock = b.LatestBlock()
+    var rec string
+    for {
+        select {
+        case <- ticker.C:
+            fmt.Println("[blockchain.info mod] Polling for new block.")
+            if rec = b.LatestBlock(); b.recentestBlock != rec {
+                b.recentestBlock = rec
+                eve := events.Event{
+                    Event:     "newBlock",
+                    Resource:  b.recentestBlock,
+                    Source:    b.Name(),
+                    TimeStamp: time.Now(),
+                }
+                b.chans["newBlock"] <- eve
+                fmt.Printf("[blockchain.info mod] New Block: %s.\n", eve.Resource)
+            } else {
+                fmt.Println("[blockchain.info mod] No New Block.")
+            }
+        case <- b.pollAddresses:
+            fmt.Println("[blockchain.info mod] Stopping Poller.")
+            ticker.Stop()
+            break
+        }
+    }
+}
+
+// func (b *BlkChainInfo) startPollAddresses(addr string) chan bool {
+//     interval, _ := time:ParseDuration("1m")
+//     ticker := time.NewTicker(interval)
+//     var stopAddressesChan chan bool
+//     if b.pollAddresses == nil {
+//         stopAddressesChan = make(chan bool)
+//         // add to addr to poll slice
+//         go pollAddresses(b, ticker, stopAddressesChan)
+//     } else {
+//         // stopAddressesChan = b.pollAddresses
+//         // addAddressesChan <- addr
+//         // todo: add to addressesToPoll slice
+//     }
+// }
+
+// func (b *BlkChainInfo) pollAddresses(ticker *time.Ticker, stopAddressesChan <- chan bool) {
+//     watched := make(map[string]int64)
+//     for {
+//         select {
+//         case <- ticker.C:
+
+//         }
+//     }
+// }
