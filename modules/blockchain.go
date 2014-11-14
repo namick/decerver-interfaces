@@ -97,7 +97,26 @@ type Transaction struct {
 	Gas              string
 	GasCost          string
 	BlockHash        string
+	Inputs           []*Input
+	Outputs          []*Output
 	Error            string
+}
+
+type Input struct {
+	PrevOut  struct {
+		Address          string
+        Number           int64
+        Type             int64
+        Value            int64
+	}
+	Script   string
+}
+
+type Output struct {
+	Address          string
+	Number           int64
+	Type             int64
+	Value            int64
 }
 
 type TxIndata struct {
