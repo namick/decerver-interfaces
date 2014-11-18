@@ -2,21 +2,33 @@ package blockchaininfo
 
 import (
 	"fmt"
-	"time"
+	"github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 	"testing"
+	"time"
 )
 
 var (
 	BlockChainInfo = start()
 	blockHash      = "000000000000000016d65758ed8df787c3d490c569578d38d6db2ed4b56817f0"
 	acct1          = "15v4EdEsnt367mgUdqSvbS7xExXTwKWoTo"
+	acct2          = ""
+	acct3          = ""
+	guid           = ""
+	passwd1        = ""
+	passwd2        = ""
+	apicode        = ""
 )
 
 func start() *BlkChainInfo {
 	b := NewBlkChainInfo()
 	_ = b.Init()
-	// normally this would not _ the err, but for testing purposes there is no config file.
+
+	b.BciApi.GUID           = guid
+	b.BciApi.Password       = passwd1
+	b.BciApi.SecondPassword = passwd2
+	b.BciApi.APICode        = apicode
+
 	return b
 }
 
@@ -49,6 +61,15 @@ func testBlockEquality(block *modules.Block) error {
 
 func testTxEquality(tx *modules.Transaction) error {
 	return nil
+}
+
+
+func TestTx(t *testing.T) {
+	hash, err := BlockChainInfo.Tx(acct3, "500")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("Successful test transfer: ", hash)
 }
 
 func TestBlock(t *testing.T) {
@@ -85,9 +106,34 @@ func TestAccount(t *testing.T) {
 
 // Note these will take time so not ideal to run them all the time.
 func TestBlockPolling(t *testing.T) {
-	fmt.Println("Hold Fast. Long Time coming.")
-	_ = BlockChainInfo.startPollBlocks()
-	interval, _ := time.ParseDuration("25m")
+	fmt.Println("*** Hold Fast. Long Tests coming. This test should be run with: go test -timeout=13m")
+	ch := BlockChainInfo.Subscribe("newBlock", "", "")
+	go dropBox(ch)
+	interval, _ := time.ParseDuration("12m")
 	time.Sleep(interval)
-	BlockChainInfo.stopPollBlocks()
+	BlockChainInfo.UnSubscribe("newBlock")
+}
+
+// You'll have to manually send or receive from the acct2 address
+func TestSingleAddressPolling(t *testing.T) {
+	ch := BlockChainInfo.Subscribe("addr", "tx", acct2)
+	go dropBox(ch)
+	interval, _ := time.ParseDuration("5m")
+	time.Sleep(interval)
+	BlockChainInfo.UnSubscribe(acct2)
+}
+
+func TestMultAddressPolling(t *testing.T) {
+	ch1 := BlockChainInfo.Subscribe("addr", "tx", acct2)
+	go dropBox(ch1)
+	ch2 := BlockChainInfo.Subscribe("addr", "tx", acct3)
+	go dropBox(ch2)
+	interval, _ := time.ParseDuration("5m")
+	time.Sleep(interval)
+	BlockChainInfo.UnSubscribe(acct3)
+	BlockChainInfo.UnSubscribe(acct2)
+}
+
+func dropBox(ch chan events.Event) {
+	fmt.Println(<-ch)
 }
