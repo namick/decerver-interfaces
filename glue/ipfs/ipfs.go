@@ -1,9 +1,10 @@
 package ipfs
 
 import (    
-    "bytes"
+//    "bytes"
     "fmt"
     "io"
+    "os"
     "strings"
     "errors"
     "encoding/hex"
@@ -16,6 +17,7 @@ import (
 
     core "github.com/jbenet/go-ipfs/core"
     cmds "github.com/jbenet/go-ipfs/core/commands"
+    commands "github.com/jbenet/go-ipfs/commands"
     blocks "github.com/jbenet/go-ipfs/blocks"
     config "github.com/jbenet/go-ipfs/config"
     mdag "github.com/jbenet/go-ipfs/merkledag"
@@ -149,111 +151,39 @@ func (mod *IpfsModule) Subscribe(name string, event string, target string) chan 
 // ethereum stores hashes as 32 bytes, but ipfs expects base58 encoding
 // thus our convention is that params can be a path, but it must have only a single leading hash (hex encoded)
 //  and it must lead with it
+// TODO: purpose this...
 func (ipfs *Ipfs) Get(cmd string, params ... string) (interface{}, error){
     // ipfs 
+    /*
     n := ipfs.node
     if len(params) == 0{
         return ipfs.getCmd(cmd)
-    }
-    switch(cmd){
-        case "block":
-            h, err := hex.DecodeString(params[0])
-            if err != nil{
-                return nil, err
-            }
-            k := util.Key(h)
-            ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-            b, err := n.Blocks.GetBlock(ctx, k)
-            if err != nil {
-                return nil, fmt.Errorf("block get: %v", err)
-            }
-            return b.Data, nil
-        case "file":
-            // should return a file's raw byte contents
-            // don't use on large objects
-            h, err := hexPath2B58(params[0]) 
-            if err != nil{
-                return nil, err
-            }
-            buf := bytes.NewBuffer(nil)
-            err = cmds.Cat(n, []string{h}, nil, buf)
-            if err != nil{
-                return nil, err
-            }
-            return buf.Bytes(), nil
-        case "stream":
-            // should stream the bytes over a channel
-            fpath, err := hexPath2B58(params[0])
-            if err != nil{
-                return nil, err
-            }
-            dagnode, err := n.Resolver.ResolvePath(fpath)
-            if err != nil {
-                return nil, fmt.Errorf("catFile error: %v", err)
-            }
-            read, err := uio.NewDagReader(dagnode, n.DAG)
-            if err != nil {
-                return nil, fmt.Errorf("cat error: %v", err)
-            }
-            ch := make(chan []byte)
-            var n int
-            go func(){
-                for err != io.EOF{
-                    b := make([]byte, 1024)
-                    // read from reader 1024 bytes at a time
-                    n, err = read.Read(b)
-                    if err != nil && err != io.EOF{
-                        //return nil, err
-                        break
-                        // how to handle these errors?!
-                    }
-                    // broadcast on channel
-                    ch <- b[:n]
-                }
-                close(ch)
-            }()
-            return ch, nil
-        case "tree": 
-            // should return a directory tree structure
-            fpath, err := hexPath2B58(params[0])
-            if err != nil{
-                return nil, err
-            }
-            nd, err := n.Resolver.ResolvePath(fpath)
-            if err != nil {
-                return nil, err
-            }
-            mhash, err := nd.Multihash()
-            if err != nil{
-                return nil, err
-            }
-            tree := modules.FsNode{[]*modules.FsNode{}, "", hex.EncodeToString(mhash)}
-            grabRefs(n, nd, &tree)
-            return tree, nil
-        case "object":
-            // return raw file bytes or a dir tree
-            fpath, err := hexPath2B58(params[0])
-            if err != nil{
-                return nil, err
-            }
-            nd, err := n.Resolver.ResolvePath(fpath)
-            if err != nil {
-                return nil, err
-            }
-
-            pb := new(ftpb.Data)
-            err = proto.Unmarshal(nd.Data, pb)
-            if err != nil {
-                return nil, err
-            }
-
-            if pb.GetType() == ftpb.Data_Directory{
-                return ipfs.Get("tree", params[0])                
-            } else{
-               return ipfs.Get("file", params[0]) 
-            }
-    }
+    }*/
     return nil, errors.New("Invalid commmand")
+}
+
+func (ipfs *Ipfs) GetObject(hash string) (interface{}, error){
+    // return raw file bytes or a dir tree
+    fpath, err := hexPath2B58(hash)
+    if err != nil{
+        return nil, err
+    }
+    nd, err := ipfs.node.Resolver.ResolvePath(fpath)
+    if err != nil {
+        return nil, err
+    }
+
+    pb := new(ftpb.Data)
+    err = proto.Unmarshal(nd.Data, pb)
+    if err != nil {
+        return nil, err
+    }
+
+    if pb.GetType() == ftpb.Data_Directory{
+        return ipfs.GetTree(hash, -1)
+    } else{
+        return ipfs.GetFile(hash)
+    }
 }
 
 
@@ -276,12 +206,12 @@ func (ipfs *Ipfs) GetFile(hash string) ([]byte, error){
     if err != nil{
         return nil, err
     }
-    buf := bytes.NewBuffer(nil)
-    err = cmds.Cat(ipfs.node, []string{h}, nil, buf)
+   // buf := bytes.NewBuffer(nil)
+    b, err := cat(ipfs.node, []string{h}) //cmds.Cat(ipfs.node, []string{h}, nil, buf)
     if err != nil{
         return nil, err
     }
-    return buf.Bytes(), nil
+    return b, nil
 }
 
 func (ipfs *Ipfs) GetStream(hash string) (chan []byte, error){
@@ -359,41 +289,8 @@ func grabRefs(n *core.IpfsNode, nd *mdag.Node, tree *modules.FsNode) error{
     return nil
 }
 
+// ...
 func (ipfs *Ipfs) Push(cmd string, params ... string) (string, error){
-    if len(params) < 1{
-       return "", errors.New("Invalid number of parameters") 
-    }
-    fpath := params[0]
-    switch(cmd){
-        case "block":
-            data, err := hex.DecodeString(params[0])
-            if err != nil{
-                return "", err
-            }
-            b := blocks.NewBlock(data)
-           
-            k, err := ipfs.node.Blocks.AddBlock(b)
-            if err != nil {
-                return "", err
-            }            
-            return hex.EncodeToString([]byte(k)), nil
-        case "file":
-            b := bytes.NewBuffer(nil)
-            nd, err := cmds.AddPath(ipfs.node, fpath, 1, b)
-            h, err := nd.Multihash()
-            if err != nil{
-                return "", err
-            }
-            return hex.EncodeToString(h), nil
-        case "tree": 
-            b := bytes.NewBuffer(nil)
-            nd, err := cmds.AddPath(ipfs.node, fpath, -1, b)
-            h, err := nd.Multihash()
-            if err != nil{
-                return "", err
-            }
-            return hex.EncodeToString(h), nil
-    }
     return "", errors.New("Invalid cmd")
 }
 
@@ -412,12 +309,40 @@ func (ipfs *Ipfs) PushBlockString(data string) (string, error){
 }
 
 func (ipfs *Ipfs) PushFile(fpath string) (string, error){
-    return ipfs.PushTree(fpath, 1)
+    file, err := os.Open(fpath)
+    if err != nil{
+        return "", err
+    }
+    defer file.Close()
+   f := &commands.ReaderFile{
+        Filename: fpath,
+        Reader: file,
+    }
+    added := &cmds.AddOutput{}
+    nd, err := addFile(ipfs.node, f, added)
+    if err != nil{
+        return "", err
+    }
+    h, err := nd.Multihash()
+    if err != nil{
+        return "", err
+    }
+    return hex.EncodeToString(h), nil
+    //return ipfs.PushTree(fpath, 1)
 }
 
 func (ipfs *Ipfs) PushTree(fpath string, depth int) (string, error){
-    b := bytes.NewBuffer(nil)
-    nd, err := cmds.AddPath(ipfs.node, fpath, depth, b)
+    ff, err := os.Open(fpath)
+    if err != nil{
+        return "", err
+    }
+    f, err := openPath(ff, fpath)
+    if err != nil{
+        return "", err
+    }
+
+    added := &cmds.AddOutput{}
+    nd, err := addDir(ipfs.node, f, added)
     if err != nil{
         return "", err
     }
