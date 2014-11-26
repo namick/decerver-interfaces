@@ -5,6 +5,7 @@ import (
     "fmt"
     "io"
     "os"
+    "os/exec"
     "strings"
     "errors"
     "encoding/hex"
@@ -17,6 +18,7 @@ import (
 
     core "github.com/jbenet/go-ipfs/core"
     cmds "github.com/jbenet/go-ipfs/core/commands"
+    u "github.com/jbenet/go-ipfs/util"
     commands "github.com/jbenet/go-ipfs/commands"
     blocks "github.com/jbenet/go-ipfs/blocks"
     config "github.com/jbenet/go-ipfs/config"
@@ -35,16 +37,15 @@ var (
     StreamSize = 1024
 )
 
-
 // implements decerver-interface module
 type IpfsModule struct{
-    ipfs Ipfs
+    ipfs *Ipfs
+    Config *FSConfig 
 }
 
 // implements file system
 type Ipfs struct{
     node *core.IpfsNode
-    confdir string
     cfg *config.Config
 }
 
@@ -53,22 +54,35 @@ func (mod *IpfsModule) Register(fileIO decore.FileIO, registry api.ApiRegistry, 
 }
 
 func NewIpfs() *IpfsModule{
-    return &IpfsModule{Ipfs{}}
+    ii := new(IpfsModule)
+    i := new(Ipfs)
+    ii.Config = DefaultConfig
+    ii.ipfs = i
+    return ii
 }
 
 func (mod *IpfsModule) Init() error{
-
-	filename, err := config.Filename(mod.ipfs.confdir)
+	filename, err := config.Filename(mod.Config.RootDir)
 	if err != nil {
 		return err
 	}
-
 	mod.ipfs.cfg, err = config.Load(filename)
 	if err != nil {
-		return err
+        if strings.Contains(err.Error(), "init"){
+            c := exec.Command("ipfs", "init", "-d="+mod.Config.RootDir)
+            c.Stdout = os.Stdout
+            err := c.Run()
+            if err != nil{
+                fmt.Println(err)
+                os.Exit(0)
+            }
+        } else {
+		    return err
+        }
+        return mod.Init()
 	}
 
-    // TODO: check ipfs init
+    u.SetLogLevel("*", logLevels[mod.Config.LogLevel])
 
 	/*if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
 		return nil, err
