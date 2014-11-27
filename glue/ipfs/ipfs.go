@@ -104,6 +104,7 @@ func (mod *IpfsModule) Start() error{
     return nil
 }
 
+// TODO !
 func (mod *IpfsModule) Shutdown() error{
     return nil
 }
@@ -161,8 +162,37 @@ func (mod *IpfsModule) PushTree(fpath string, depth int) (string, error){
 }
 
 func (mod *IpfsModule) Subscribe(name string, event string, target string) chan events.Event{
-    // not implemented yet
-    return nil
+    return mod.ipfs.Subscribe(name, event, target)
+}
+
+func (mod *IpfsModule) UnSubscribe(name string) {
+    mod.ipfs.UnSubscribe(name)
+}
+
+// IpfsModule should satisfy KeyManager
+
+func (mod *IpfsModule) ActiveAddress() string{
+    return mod.ipfs.ActiveAddress()
+}
+
+func (mod *IpfsModule) Address(n int) (string, error){
+    return mod.ipfs.Address(n)
+}
+
+func (mod *IpfsModule) SetAddress(addr string) error{
+    return mod.ipfs.SetAddress(addr)
+}
+
+func (mod *IpfsModule) SetAddressN(n int) error{
+    return mod.ipfs.SetAddressN(n)
+}
+
+func (mod *IpfsModule) NewAddress(set bool) string{
+    return mod.ipfs.NewAddress(set)
+}
+
+func (mod *IpfsModule) AddressCount() int{
+    return mod.ipfs.AddressCount()
 }
 
 
@@ -369,6 +399,37 @@ func (ipfs *Ipfs) PushTree(fpath string, depth int) (string, error){
         return "", err
     }
     return hex.EncodeToString(h), nil
+}
+
+func (ipfs *Ipfs) Subscribe(name string, event string, target string) chan events.Event{
+    return nil
+}
+
+func (ipfs *Ipfs) UnSubscribe(name string){
+}
+
+func (ipfs *Ipfs) ActiveAddress() string{
+    return ""
+}
+
+func (ipfs *Ipfs) Address(n int) (string, error){
+    return "", nil
+}
+
+func (ipfs *Ipfs) SetAddress(addr string) error{
+    return nil
+}
+
+func (ipfs *Ipfs) SetAddressN(n int) error{
+    return nil
+}
+
+func (ipfs *Ipfs) NewAddress(set bool) string{
+    return ""
+}
+
+func (ipfs *Ipfs) AddressCount() int{
+    return 0
 }
 
 

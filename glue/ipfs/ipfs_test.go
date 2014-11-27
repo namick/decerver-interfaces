@@ -184,3 +184,13 @@ func TestTree(t *testing.T){
     cmpTree(t, tr, &tree)
 }
 
+func TestModule(t *testing.T){
+    // test IpfsModule satisfies DecerverModule
+    f := func(b modules.Module){}
+    f(IPFS) 
+
+    // test IpfsModule and Ipfs satisfy FileSystem
+    g := func(b modules.FileSystem){}
+    g(IPFS) 
+    g(IPFS.ipfs)
+}
