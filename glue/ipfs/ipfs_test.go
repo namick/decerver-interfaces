@@ -1,9 +1,11 @@
 package ipfs
 
 import (
+    //"fmt"
     "log"
     "io/ioutil"
     "os"
+    //"path"
     "testing"
     modules "github.com/eris-ltd/decerver-interfaces/modules"
 )
@@ -181,5 +183,4 @@ func TestTree(t *testing.T){
     tr.Name = tree.Name
     cmpTree(t, tr, &tree)
 }
-
 

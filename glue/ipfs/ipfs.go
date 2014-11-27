@@ -62,10 +62,14 @@ func NewIpfs() *IpfsModule{
 }
 
 func (mod *IpfsModule) Init() error{
+    // config is RootDir/config
 	filename, err := config.Filename(mod.Config.RootDir)
 	if err != nil {
 		return err
 	}
+    // load the config file
+    // if non-existant, initialize ipfs
+    // on the machine
 	mod.ipfs.cfg, err = config.Load(filename)
 	if err != nil {
         if strings.Contains(err.Error(), "init"){

@@ -21,7 +21,8 @@ import (
 )
 
 // Much of this fucntionality used to be exported from go-ipfs
-//  now it is duplicated. Perhaps it is better that way.
+//  but now its private, so we duplicate. 
+//  Perhaps it is better that way, perhaps not
 
 func cat(node *core.IpfsNode, paths []string) ([]byte, error) {                
     readers := make([]io.Reader, 0, len(paths))                                     

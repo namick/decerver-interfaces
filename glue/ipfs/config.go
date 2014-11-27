@@ -12,7 +12,7 @@ func homeDir() string {
 }
 
 type FSConfig struct{
-    RootDir string 
+    RootDir string  // its a lie, this is just for the datastore. no way to configure two different ipfs processes right now..
     LogLevel int
 }
 
