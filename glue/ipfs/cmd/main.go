@@ -54,11 +54,11 @@ func main(){
     }
     fmt.Println(string(aa.([]byte)))
     */
-    time.Sleep(time.Second*10)
+    time.Sleep(time.Second*5)
     fmt.Println("calling get file...")
     a, e := i.GetFile(h)
     fmt.Println(string(a), e)
-
+    i.Shutdown()
 }
 
 func printTree(t *modules.FsNode){

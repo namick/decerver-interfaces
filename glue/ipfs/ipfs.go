@@ -95,7 +95,7 @@ func (mod *IpfsModule) Init() error{
 }
 
 func (mod *IpfsModule) Start() error{
-    n, err := core.NewIpfsNode(mod.ipfs.cfg, true) //config, online
+    n, err := core.NewIpfsNode(mod.ipfs.cfg, mod.Config.Online) //config, online
     if err != nil{
         return err
     }
@@ -104,8 +104,13 @@ func (mod *IpfsModule) Start() error{
     return nil
 }
 
-// TODO !
+// TODO: UDP socket won't close
+// https://github.com/jbenet/go-ipfs/issues/389
 func (mod *IpfsModule) Shutdown() error{
+    if n := mod.ipfs.node.Network; n != nil{
+        n.Close()
+    }
+    mod.ipfs.node.Close()
     return nil
 }
 
@@ -143,7 +148,6 @@ func (mod *IpfsModule) GetStream(hash string) (chan []byte, error){
 func (mod *IpfsModule) GetTree(hash string, depth int) (*modules.FsNode, error){
     return mod.ipfs.GetTree(hash, depth)
 }
-
 
 func (mod *IpfsModule) PushBlock(block []byte) (string, error){
     return mod.ipfs.PushBlock(block)
@@ -408,28 +412,37 @@ func (ipfs *Ipfs) Subscribe(name string, event string, target string) chan event
 func (ipfs *Ipfs) UnSubscribe(name string){
 }
 
+// Key manager functions.
+// Note in ipfs (in contrast with a blockchain), one is much less likely
+// to change keys, as there are accrued benefits to sticking with a single key,
+// and there is no notion of "transactions"
+
+// An ipfs ID is simply the multihash of the publickey
 func (ipfs *Ipfs) ActiveAddress() string{
-    return ""
+    return hex.EncodeToString(ipfs.node.Identity.ID())
 }
 
+// Ipfs node's only have one address
 func (ipfs *Ipfs) Address(n int) (string, error){
-    return "", nil
+    return ipfs.ActiveAddress(), nil
 }
 
 func (ipfs *Ipfs) SetAddress(addr string) error{
-    return nil
+    return fmt.Errorf("It is not possible to set the ipfs node address without restarting.")
 }
 
 func (ipfs *Ipfs) SetAddressN(n int) error{
-    return nil
+    return fmt.Errorf("It is not possible to set the ipfs node address without restarting.")
 }
 
+// We don't create new addresses on the fly
 func (ipfs *Ipfs) NewAddress(set bool) string{
     return ""
 }
 
+// we only have one ipfs address
 func (ipfs *Ipfs) AddressCount() int{
-    return 0
+    return 1
 }
 
 
