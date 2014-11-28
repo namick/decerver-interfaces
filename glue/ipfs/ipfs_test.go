@@ -1,15 +1,18 @@
 package ipfs
 
 import (
+    //"fmt"
+    "time"
     "log"
     "io/ioutil"
     "os"
+    //"path"
     "testing"
     modules "github.com/eris-ltd/decerver-interfaces/modules"
 )
 
 var (
-    IPFS = start()
+    IPFS = start(true) // offline
 
     block = `here is a block of data to push. it is a modest size amount.
     not too much data, but not too little.
@@ -50,8 +53,9 @@ var (
 )
 
 // TODO: how do we stop ipfs?!
-func start() *IpfsModule{
+func start(online bool) *IpfsModule{
     i := NewIpfs() 
+    i.Config.Online = online
     err := i.Init()
     if err != nil{
         log.Fatal(err)
@@ -60,6 +64,7 @@ func start() *IpfsModule{
     if err != nil{
         log.Fatal(err)
     }
+    time.Sleep(time.Second*3)
     return i
 }
 
@@ -182,4 +187,22 @@ func TestTree(t *testing.T){
     cmpTree(t, tr, &tree)
 }
 
+func TestModule(t *testing.T){
+    // test IpfsModule satisfies DecerverModule
+    f := func(b modules.Module){}
+    f(IPFS) 
 
+    // test IpfsModule and Ipfs satisfy FileSystem
+    g := func(b modules.FileSystem){}
+    g(IPFS) 
+    g(IPFS.ipfs)
+}
+
+func TestShutdown(t *testing.T){
+    IPFS.Shutdown()
+    time.Sleep(time.Second*5)
+    IPFS.ipfs.node = nil
+    log.Println("restarting...")
+    IPFS = start(true)
+    time.Sleep(time.Second*5)
+}

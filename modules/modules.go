@@ -80,7 +80,7 @@ type FileSystem interface {
 	GetBlock(hash string) ([]byte, error)
 	GetFile(hash string) ([]byte, error)
 	GetStream(hash string) (chan []byte, error)
-	GetTree(hash string, depth int) (FsNode, error)
+	GetTree(hash string, depth int) (*FsNode, error)
 
 	PushBlock(block []byte) (string, error)
 	PushBlockString(block string) (string, error)

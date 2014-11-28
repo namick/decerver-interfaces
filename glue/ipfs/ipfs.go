@@ -1,9 +1,11 @@
 package ipfs
 
 import (    
-    "bytes"
+//    "bytes"
     "fmt"
     "io"
+    "os"
+    "os/exec"
     "strings"
     "errors"
     "encoding/hex"
@@ -16,6 +18,8 @@ import (
 
     core "github.com/jbenet/go-ipfs/core"
     cmds "github.com/jbenet/go-ipfs/core/commands"
+    u "github.com/jbenet/go-ipfs/util"
+    commands "github.com/jbenet/go-ipfs/commands"
     blocks "github.com/jbenet/go-ipfs/blocks"
     config "github.com/jbenet/go-ipfs/config"
     mdag "github.com/jbenet/go-ipfs/merkledag"
@@ -33,16 +37,15 @@ var (
     StreamSize = 1024
 )
 
-
 // implements decerver-interface module
 type IpfsModule struct{
-    ipfs Ipfs
+    ipfs *Ipfs
+    Config *FSConfig 
 }
 
 // implements file system
 type Ipfs struct{
     node *core.IpfsNode
-    confdir string
     cfg *config.Config
 }
 
@@ -51,22 +54,39 @@ func (mod *IpfsModule) Register(fileIO decore.FileIO, registry api.ApiRegistry, 
 }
 
 func NewIpfs() *IpfsModule{
-    return &IpfsModule{Ipfs{}}
+    ii := new(IpfsModule)
+    i := new(Ipfs)
+    ii.Config = DefaultConfig
+    ii.ipfs = i
+    return ii
 }
 
 func (mod *IpfsModule) Init() error{
-
-	filename, err := config.Filename(mod.ipfs.confdir)
+    // config is RootDir/config
+	filename, err := config.Filename(mod.Config.RootDir)
 	if err != nil {
 		return err
 	}
-
+    // load the config file
+    // if non-existant, initialize ipfs
+    // on the machine
 	mod.ipfs.cfg, err = config.Load(filename)
 	if err != nil {
-		return err
+        if strings.Contains(err.Error(), "init"){
+            c := exec.Command("ipfs", "init", "-d="+mod.Config.RootDir)
+            c.Stdout = os.Stdout
+            err := c.Run()
+            if err != nil{
+                fmt.Println(err)
+                os.Exit(0)
+            }
+        } else {
+		    return err
+        }
+        return mod.Init()
 	}
 
-    // TODO: check ipfs init
+    u.SetLogLevel("*", logLevels[mod.Config.LogLevel])
 
 	/*if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
 		return nil, err
@@ -75,7 +95,7 @@ func (mod *IpfsModule) Init() error{
 }
 
 func (mod *IpfsModule) Start() error{
-    n, err := core.NewIpfsNode(mod.ipfs.cfg, true) //config, online
+    n, err := core.NewIpfsNode(mod.ipfs.cfg, mod.Config.Online) //config, online
     if err != nil{
         return err
     }
@@ -84,7 +104,13 @@ func (mod *IpfsModule) Start() error{
     return nil
 }
 
+// TODO: UDP socket won't close
+// https://github.com/jbenet/go-ipfs/issues/389
 func (mod *IpfsModule) Shutdown() error{
+    if n := mod.ipfs.node.Network; n != nil{
+        n.Close()
+    }
+    mod.ipfs.node.Close()
     return nil
 }
 
@@ -123,7 +149,6 @@ func (mod *IpfsModule) GetTree(hash string, depth int) (*modules.FsNode, error){
     return mod.ipfs.GetTree(hash, depth)
 }
 
-
 func (mod *IpfsModule) PushBlock(block []byte) (string, error){
     return mod.ipfs.PushBlock(block)
 }
@@ -141,119 +166,76 @@ func (mod *IpfsModule) PushTree(fpath string, depth int) (string, error){
 }
 
 func (mod *IpfsModule) Subscribe(name string, event string, target string) chan events.Event{
-    // not implemented yet
-    return nil
+    return mod.ipfs.Subscribe(name, event, target)
+}
+
+func (mod *IpfsModule) UnSubscribe(name string) {
+    mod.ipfs.UnSubscribe(name)
+}
+
+// IpfsModule should satisfy KeyManager
+
+func (mod *IpfsModule) ActiveAddress() string{
+    return mod.ipfs.ActiveAddress()
+}
+
+func (mod *IpfsModule) Address(n int) (string, error){
+    return mod.ipfs.Address(n)
+}
+
+func (mod *IpfsModule) SetAddress(addr string) error{
+    return mod.ipfs.SetAddress(addr)
+}
+
+func (mod *IpfsModule) SetAddressN(n int) error{
+    return mod.ipfs.SetAddressN(n)
+}
+
+func (mod *IpfsModule) NewAddress(set bool) string{
+    return mod.ipfs.NewAddress(set)
+}
+
+func (mod *IpfsModule) AddressCount() int{
+    return mod.ipfs.AddressCount()
 }
 
 
 // ethereum stores hashes as 32 bytes, but ipfs expects base58 encoding
 // thus our convention is that params can be a path, but it must have only a single leading hash (hex encoded)
 //  and it must lead with it
+// TODO: purpose this...
 func (ipfs *Ipfs) Get(cmd string, params ... string) (interface{}, error){
     // ipfs 
+    /*
     n := ipfs.node
     if len(params) == 0{
         return ipfs.getCmd(cmd)
-    }
-    switch(cmd){
-        case "block":
-            h, err := hex.DecodeString(params[0])
-            if err != nil{
-                return nil, err
-            }
-            k := util.Key(h)
-            ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-            b, err := n.Blocks.GetBlock(ctx, k)
-            if err != nil {
-                return nil, fmt.Errorf("block get: %v", err)
-            }
-            return b.Data, nil
-        case "file":
-            // should return a file's raw byte contents
-            // don't use on large objects
-            h, err := hexPath2B58(params[0]) 
-            if err != nil{
-                return nil, err
-            }
-            buf := bytes.NewBuffer(nil)
-            err = cmds.Cat(n, []string{h}, nil, buf)
-            if err != nil{
-                return nil, err
-            }
-            return buf.Bytes(), nil
-        case "stream":
-            // should stream the bytes over a channel
-            fpath, err := hexPath2B58(params[0])
-            if err != nil{
-                return nil, err
-            }
-            dagnode, err := n.Resolver.ResolvePath(fpath)
-            if err != nil {
-                return nil, fmt.Errorf("catFile error: %v", err)
-            }
-            read, err := uio.NewDagReader(dagnode, n.DAG)
-            if err != nil {
-                return nil, fmt.Errorf("cat error: %v", err)
-            }
-            ch := make(chan []byte)
-            var n int
-            go func(){
-                for err != io.EOF{
-                    b := make([]byte, 1024)
-                    // read from reader 1024 bytes at a time
-                    n, err = read.Read(b)
-                    if err != nil && err != io.EOF{
-                        //return nil, err
-                        break
-                        // how to handle these errors?!
-                    }
-                    // broadcast on channel
-                    ch <- b[:n]
-                }
-                close(ch)
-            }()
-            return ch, nil
-        case "tree": 
-            // should return a directory tree structure
-            fpath, err := hexPath2B58(params[0])
-            if err != nil{
-                return nil, err
-            }
-            nd, err := n.Resolver.ResolvePath(fpath)
-            if err != nil {
-                return nil, err
-            }
-            mhash, err := nd.Multihash()
-            if err != nil{
-                return nil, err
-            }
-            tree := modules.FsNode{[]*modules.FsNode{}, "", hex.EncodeToString(mhash)}
-            grabRefs(n, nd, &tree)
-            return tree, nil
-        case "object":
-            // return raw file bytes or a dir tree
-            fpath, err := hexPath2B58(params[0])
-            if err != nil{
-                return nil, err
-            }
-            nd, err := n.Resolver.ResolvePath(fpath)
-            if err != nil {
-                return nil, err
-            }
-
-            pb := new(ftpb.Data)
-            err = proto.Unmarshal(nd.Data, pb)
-            if err != nil {
-                return nil, err
-            }
-
-            if pb.GetType() == ftpb.Data_Directory{
-                return ipfs.Get("tree", params[0])                
-            } else{
-               return ipfs.Get("file", params[0]) 
-            }
-    }
+    }*/
     return nil, errors.New("Invalid commmand")
+}
+
+func (ipfs *Ipfs) GetObject(hash string) (interface{}, error){
+    // return raw file bytes or a dir tree
+    fpath, err := hexPath2B58(hash)
+    if err != nil{
+        return nil, err
+    }
+    nd, err := ipfs.node.Resolver.ResolvePath(fpath)
+    if err != nil {
+        return nil, err
+    }
+
+    pb := new(ftpb.Data)
+    err = proto.Unmarshal(nd.Data, pb)
+    if err != nil {
+        return nil, err
+    }
+
+    if pb.GetType() == ftpb.Data_Directory{
+        return ipfs.GetTree(hash, -1)
+    } else{
+        return ipfs.GetFile(hash)
+    }
 }
 
 
@@ -276,12 +258,12 @@ func (ipfs *Ipfs) GetFile(hash string) ([]byte, error){
     if err != nil{
         return nil, err
     }
-    buf := bytes.NewBuffer(nil)
-    err = cmds.Cat(ipfs.node, []string{h}, nil, buf)
+   // buf := bytes.NewBuffer(nil)
+    b, err := cat(ipfs.node, []string{h}) //cmds.Cat(ipfs.node, []string{h}, nil, buf)
     if err != nil{
         return nil, err
     }
-    return buf.Bytes(), nil
+    return b, nil
 }
 
 func (ipfs *Ipfs) GetStream(hash string) (chan []byte, error){
@@ -359,41 +341,8 @@ func grabRefs(n *core.IpfsNode, nd *mdag.Node, tree *modules.FsNode) error{
     return nil
 }
 
+// ...
 func (ipfs *Ipfs) Push(cmd string, params ... string) (string, error){
-    if len(params) < 1{
-       return "", errors.New("Invalid number of parameters") 
-    }
-    fpath := params[0]
-    switch(cmd){
-        case "block":
-            data, err := hex.DecodeString(params[0])
-            if err != nil{
-                return "", err
-            }
-            b := blocks.NewBlock(data)
-           
-            k, err := ipfs.node.Blocks.AddBlock(b)
-            if err != nil {
-                return "", err
-            }            
-            return hex.EncodeToString([]byte(k)), nil
-        case "file":
-            b := bytes.NewBuffer(nil)
-            nd, err := cmds.AddPath(ipfs.node, fpath, 1, b)
-            h, err := nd.Multihash()
-            if err != nil{
-                return "", err
-            }
-            return hex.EncodeToString(h), nil
-        case "tree": 
-            b := bytes.NewBuffer(nil)
-            nd, err := cmds.AddPath(ipfs.node, fpath, -1, b)
-            h, err := nd.Multihash()
-            if err != nil{
-                return "", err
-            }
-            return hex.EncodeToString(h), nil
-    }
     return "", errors.New("Invalid cmd")
 }
 
@@ -412,12 +361,17 @@ func (ipfs *Ipfs) PushBlockString(data string) (string, error){
 }
 
 func (ipfs *Ipfs) PushFile(fpath string) (string, error){
-    return ipfs.PushTree(fpath, 1)
-}
-
-func (ipfs *Ipfs) PushTree(fpath string, depth int) (string, error){
-    b := bytes.NewBuffer(nil)
-    nd, err := cmds.AddPath(ipfs.node, fpath, depth, b)
+    file, err := os.Open(fpath)
+    if err != nil{
+        return "", err
+    }
+    defer file.Close()
+   f := &commands.ReaderFile{
+        Filename: fpath,
+        Reader: file,
+    }
+    added := &cmds.AddOutput{}
+    nd, err := addFile(ipfs.node, f, added)
     if err != nil{
         return "", err
     }
@@ -426,6 +380,69 @@ func (ipfs *Ipfs) PushTree(fpath string, depth int) (string, error){
         return "", err
     }
     return hex.EncodeToString(h), nil
+    //return ipfs.PushTree(fpath, 1)
+}
+
+func (ipfs *Ipfs) PushTree(fpath string, depth int) (string, error){
+    ff, err := os.Open(fpath)
+    if err != nil{
+        return "", err
+    }
+    f, err := openPath(ff, fpath)
+    if err != nil{
+        return "", err
+    }
+
+    added := &cmds.AddOutput{}
+    nd, err := addDir(ipfs.node, f, added)
+    if err != nil{
+        return "", err
+    }
+    h, err := nd.Multihash()
+    if err != nil{
+        return "", err
+    }
+    return hex.EncodeToString(h), nil
+}
+
+func (ipfs *Ipfs) Subscribe(name string, event string, target string) chan events.Event{
+    return nil
+}
+
+func (ipfs *Ipfs) UnSubscribe(name string){
+}
+
+// Key manager functions.
+// Note in ipfs (in contrast with a blockchain), one is much less likely
+// to change keys, as there are accrued benefits to sticking with a single key,
+// and there is no notion of "transactions"
+
+// An ipfs ID is simply the multihash of the publickey
+func (ipfs *Ipfs) ActiveAddress() string{
+    return hex.EncodeToString(ipfs.node.Identity.ID())
+}
+
+// Ipfs node's only have one address
+func (ipfs *Ipfs) Address(n int) (string, error){
+    return ipfs.ActiveAddress(), nil
+}
+
+func (ipfs *Ipfs) SetAddress(addr string) error{
+    return fmt.Errorf("It is not possible to set the ipfs node address without restarting.")
+}
+
+func (ipfs *Ipfs) SetAddressN(n int) error{
+    return fmt.Errorf("It is not possible to set the ipfs node address without restarting.")
+}
+
+// We don't create new addresses on the fly
+func (ipfs *Ipfs) NewAddress(set bool) string{
+    return ""
+}
+
+// we only have one ipfs address
+func (ipfs *Ipfs) AddressCount() int{
+    return 1
 }
 
 
