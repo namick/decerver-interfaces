@@ -21,16 +21,16 @@ func NewBlockMiniQueue() *BlockMiniQueue{
 	return bmq
 }
 
-func (bmq *BlockMiniQueue) Pop() *modules.BlockMiniData {
+func (bmq *BlockMiniQueue) Pop() *modules.BlockMini {
 	bmq.mutex.Lock()
 	val := bmq.queue.Front()
 	bmq.queue.Remove(val)
-	num, _ := val.Value.(*modules.BlockMiniData)
+	num, _ := val.Value.(*modules.BlockMini)
 	bmq.mutex.Unlock()
 	return num
 }
 
-func (bmq *BlockMiniQueue) Push(bmd *modules.BlockMiniData) {
+func (bmq *BlockMiniQueue) Push(bmd *modules.BlockMini) {
 	bmq.mutex.Lock()
 	bmq.queue.PushBack(bmd)
 	bmq.mutex.Unlock()

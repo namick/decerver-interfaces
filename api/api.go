@@ -17,12 +17,14 @@ package api
 // TODO Write up the websocket rpc protocol and explain how to create a service.
 //
 // Stateful connections is the normal way to communicate between a UI and decerver, as it allows
-// two-way communication. Http can be used in cases when you only want to do some occasional polling.
+// two-way communication.
 import (
 	"encoding/json"
-	"github.com/robertkrimen/otto"
 )
 
+type JsObject map[string]interface{}
+
+// Json RPC errors.
 type ErrorCode int
 
 const (
@@ -35,87 +37,66 @@ const (
 )
 
 // A JSON-RPC message received by the server.
-type Request struct {
-	// Should always be set to '2.0'
-	JsonRPC string `json:"jsonrpc"`
-	// A String containing the name of the method to be invoked.
-	Method string `json:"method"`
-	// An Array of objects to pass as arguments to the method.
-	Params *json.RawMessage `json:"params"`
-	// Id
-	Id int `json:"id"`
-	// Timestamp
-	Timestamp int `json:"timestamp"`
-}
+type (
+	Request struct {
+		// Should always be set to '2.0'
+		JsonRPC string `json:"jsonrpc"`
+		// A String containing the name of the method to be invoked.
+		Method string `json:"method"`
+		// An Array of objects to pass as arguments to the method.
+		Params *json.RawMessage `json:"params"`
+		// Id
+		Id int `json:"id"`
+	}
 
-// A JSON-RPC message sent by the server.
-type Response struct {
-	// The Object that was returned by the invoked method. This must be null
-	// in case there was an error invoking the method.
-	Result interface{} `json:"result"`
-	// An Error object if there was an error invoking the method. It must be
-	// null if there was no error.
-	Error interface{} `json:"error"`
-	// Timestamp
-	Timestamp int `json:"timestamp"`
-	// The name of the Object that was returned by the invoke method.
-	Id string `json:"id"`
-}
+	// A JSON-RPC message sent by the server.
+	Response struct {
+		// The Object that was returned by the invoked method. This must be null
+		// in case there was an error invoking the method.
+		Result interface{} `json:"result"`
+		// An Error object if there was an error invoking the method. It must be
+		// null if there was no error.
+		Error interface{} `json:"error"`
+		// The name of the Object that was returned by the invoke method.
+		Id string `json:"id"`
+	}
 
-var null = json.RawMessage([]byte("null"))
-
-// Errors sent in api call responses.
-type Error struct {
-	// A Number that indicates the error type that occurred.
-	Code ErrorCode `json:"code"` /* required */
-	// A String providing a short description of the error.
-	// The message SHOULD be limited to a concise single sentence.
-	Message string `json:"message"` /* required */
-	// A Primitive or Structured value that contains additional information about the error.
-	Data interface{} `json:"data"` /* optional */
-}
+	// Errors sent in api call responses.
+	Error struct {
+		// A Number that indicates the error type that occurred.
+		Code ErrorCode `json:"code"` /* required */
+		// A String providing a short description of the error.
+		// The message SHOULD be limited to a concise single sentence.
+		Message string `json:"message"` /* required */
+		// A Primitive or Structured value that contains additional information about the error.
+		Data interface{} `json:"data"` /* optional */
+	}
+)
 
 func (e *Error) Error() string {
 	return e.Message
 }
 
-type WebSocketObj interface {
-	SessionId() uint32
-	WriteTextMsg(msg interface{})
-	WriteCloseMsg()
-}
+var null = json.RawMessage([]byte("null"))
 
-// Function that handles socket based rpc requests
-type WsAPIMethod func(*Request, *Response)
+// Websocket rpc
+type (
 
-// A stateful (websocket-based) rpc service.
-type WsAPIService interface {
-	Name() string
-	Init()
-	HandleRPC(*Request) (*Response, error)
-	SetConnection(wsConn WebSocketObj)
-	Shutdown()
-}
+	// Function that handles rpc requests over websocket.
+	WsAPIMethod func(*Request, *Response)
 
-// A factory for creating SRPCServices of a given kind
-type WsAPIServiceFactory interface {
-	CreateService() WsAPIService
-	Init()
-	ServiceName() string
-	Shutdown()
-}
+	WsSession interface {
+		SessionId() uint32
+		WriteJsonMsg(msg interface{})
+		WriteCloseMsg()
+	}
+)
 
-// A function that can be added to the otto vm.
-type AteFunc func(otto.FunctionCall) otto.Value
-
-type ApiRegistry interface {
-	RegisterHttpServices(service ...interface{})
-	RegisterWsServiceFactories(factory ...WsAPIServiceFactory)
-}
-
-type NetHandler interface {
-	HandleInboundHttp(*Request) *Response
-	HandleInboundWs(*Request)
-	HandleOutboundWs(*Response)
-	// TODO handlers for inbound/outbound stream
-}
+// Webserver and api
+type (
+	
+	Server interface {
+		// This will register html page loading + http and websocket endpoints for the dapp.
+		RegisterDapp(dappId string)
+	}
+)

@@ -14,7 +14,7 @@ func (mapi *Monk) IsContract(r *http.Request, args *modules.VString, reply *modu
 	if acc == nil {
 		reply.BVal = false
 	} else {
-		reply.BVal = acc.IsScript
+		reply.BVal = acc["IsScript"].(bool)
 	}
 	return nil
 }
@@ -25,7 +25,7 @@ func (mapi *Monk) BalanceAt(r *http.Request, args *modules.VString, reply *modul
 	if acc == nil {
 		reply.SVal = ""
 	} else {
-		reply.SVal = acc.Balance	
+		reply.SVal = acc["Balance"].(string)
 	}
 	
 	return nil

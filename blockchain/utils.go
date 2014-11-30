@@ -1,5 +1,5 @@
 package blockchain
-
+/*
 import (
 	"fmt"
 	"github.com/eris-ltd/decerver-interfaces/modules"
@@ -24,15 +24,15 @@ const (
     ZerHash256 = "00000000000000000000000000000000"
 )
 
-func getBlockChain(chain modules.Blockchain) []*modules.BlockMiniData {
+func getBlockChain(chain modules.Blockchain) []*modules.BlockMini {
 	lastNum := chain.BlockCount()
 	ctr := int(lastNum)
 	fmt.Printf("Last Block Number: %d\n", lastNum)
-	blocks := make([]*modules.BlockMiniData, ctr+1)
+	blocks := make([]*modules.BlockMini, ctr+1)
 	bHash := chain.LatestBlock()
 	block := chain.Block(bHash)
 	fmt.Printf("Current Block Number: %s\n", block.Number)
-	bmd := &modules.BlockMiniData{}
+	bmd := &modules.BlockMini{}
 	getBlockMiniWSFromBlock(bmd, block)
 	blocks[ctr] = bmd
 	fmt.Printf("Current Block Mini: %v\n", bmd)
@@ -41,7 +41,7 @@ func getBlockChain(chain modules.Blockchain) []*modules.BlockMiniData {
 		pHash := block.PrevHash
 		block = chain.Block(pHash)
 		fmt.Printf("Current Block Number: %s\n", block.Number)
-		bmd := &modules.BlockMiniData{}
+		bmd := &modules.BlockMini{}
 		getBlockMiniWSFromBlock(bmd, block)
 		blocks[ctr] = bmd
 		fmt.Printf("Current Block Mini: %v\n", bmd)
@@ -52,7 +52,7 @@ func getBlockChain(chain modules.Blockchain) []*modules.BlockMiniData {
 }
 
 // Used during world state generation, when we don't care about the transactions.
-func getBlockMiniWSFromBlock(reply *modules.BlockMiniData, block *modules.Block){
+func getBlockMiniWSFromBlock(reply *modules.BlockMini, block *modules.Block){
 
 	reply.Number = block.Number
 	reply.Hash = block.Hash
@@ -66,7 +66,7 @@ func getBlockMiniWSFromBlock(reply *modules.BlockMiniData, block *modules.Block)
 }
 
 // Used in block updates from reactor, when we want account diffs along with the block data.
-func getBlockMiniDataFromBlock(chain modules.Blockchain, reply *modules.BlockMiniData, block *modules.Block) {
+func getBlockMiniFromBlock(chain modules.Blockchain, reply *modules.BlockMini, block *modules.Block) {
 
 	reply.Number = block.Number
 	reply.Hash = block.Hash
@@ -142,7 +142,7 @@ func getBlockMiniDataFromBlock(chain modules.Blockchain, reply *modules.BlockMin
 	}
 }
 
-/*
+
 func createTx(chain Blockchain, recipient, valueStr, gasStr, gasPriceStr, scriptStr string, reply *TxReceipt) error {
 	var contractCreation bool
 	if len(recipient) == 0 {
@@ -205,7 +205,7 @@ func createTx(chain Blockchain, recipient, valueStr, gasStr, gasPriceStr, script
 
 	return nil
 }
-*/
+
 
 func getAccountMiniFromAccount(am *modules.AccountMini, acc *modules.Account) {
 	am.Address = acc.Address
@@ -214,3 +214,4 @@ func getAccountMiniFromAccount(am *modules.AccountMini, acc *modules.Account) {
 	am.Nonce = acc.Nonce
 	return
 }
+*/

@@ -12,7 +12,6 @@ import (
     "time"
 
     decore "github.com/eris-ltd/decerver-interfaces/core"
-    api "github.com/eris-ltd/decerver-interfaces/api"
     events "github.com/eris-ltd/decerver-interfaces/events"
     modules "github.com/eris-ltd/decerver-interfaces/modules"
 
@@ -49,7 +48,7 @@ type Ipfs struct{
     cfg *config.Config
 }
 
-func (mod *IpfsModule) Register(fileIO decore.FileIO, registry api.ApiRegistry, runtime decore.Runtime, eReg events.EventRegistry) error {
+func (mod *IpfsModule) Register(fileIO decore.FileIO, runtime decore.Runtime, eReg events.EventRegistry) error {
     return nil
 }
 

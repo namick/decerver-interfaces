@@ -1,59 +1,67 @@
 package modules
 
 import (
-	"github.com/eris-ltd/decerver-interfaces/api"
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
 )
 
-type ModuleInfo struct {
-	Name       string `json:"name"`
-	Version    string `json:"version"`
-	Author     *AuthorInfo `json:"author"`
-	Licence    string `json:"licence"`
-	Repository string `json:"repository"`
-}
+type JsObject map[string]interface{}
 
-type AuthorInfo struct {
-	Name  string `json:"name"`
-	EMail string `json:"e-mail"`
-}
+type (
+	
+	ModuleInfo struct {
+		Name       string      `json:"name"`
+		Version    string      `json:"version"`
+		Author     *AuthorInfo `json:"author"`
+		Licence    string      `json:"licence"`
+		Repository string      `json:"repository"`
+	}
 
-type Module interface {
-	// For registering with decerver.
-	Register(fileIO core.FileIO, registry api.ApiRegistry, runtime core.Runtime, eReg events.EventRegistry) error
-	Init() error
-	Start() error
-	Shutdown() error
-	Name() string
-}
+	AuthorInfo struct {
+		Name  string `json:"name"`
+		EMail string `json:"e-mail"`
+	}
+)
 
-// TODO: interface for history (transacvtions, transaction pool)
+type (
+	Module interface {
+		// For registering with decerver.
+		Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error
+		Init() error
+		Start() error
+		Shutdown() error
+		Name() string
+		Subscribe(name, event, target string) chan events.Event
+		UnSubscribe(name string)
+	}
 
+	ModuleRegistry interface {
+		GetModules() map[string]Module
+		GetModuleNames() []string
+	}
+)
+
+// TODO: interface for history (transactions, transaction pool)
 type Blockchain interface {
 	KeyManager
-
-	WorldState() *WorldState
+	WorldState() JsObject
 	State() *State
-	Storage(target string) *Storage
-	Account(target string) *Account
+	Storage(target string) JsObject
+	Account(target string) JsObject
 	StorageAt(target, storage string) string
 
 	BlockCount() int
 	LatestBlock() string
-	Block(hash string) *Block
+	Block(hash string) JsObject
 
 	IsScript(target string) bool
 
 	Tx(addr, amt string) (string, error)
-	Msg(addr string, data []string) (string, error)
-	Script(file, lang string) (string, error)
+	Msg(addr string, data []string) JsObject
+	Script(file, lang string) JsObject
 
 	// TODO: allow set gas/price/amts
-
 	// subscribe to event
-	Subscribe(name, event, target string) chan events.Event
-	UnSubscribe(name string)
 
 	// commit cached txs (mine a block)
 	Commit()
@@ -64,10 +72,12 @@ type Blockchain interface {
 
 type KeyManager interface {
 	ActiveAddress() string
-	Address(n int) (string, error)
-	SetAddress(addr string) error
-	SetAddressN(n int) error
+	Address(n int) JsObject
+	SetAddress(addr string) string
+	SetAddressN(n int) string
 	NewAddress(set bool) string
+	// Don't want to pass numbers from otto if it can be avoided.
+	Addresses() JsObject
 	AddressCount() int
 }
 

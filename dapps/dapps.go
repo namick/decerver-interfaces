@@ -1,7 +1,7 @@
 package dapps
 
 import (
-
+ "encoding/json"
 )
 
 const (
@@ -15,6 +15,7 @@ const (
 type (
 	PackageFile struct {
 		Name               string              `json:"name"`
+		Id                 string              `json:"id"`
 		Icon               string              `json:"app_icon"`
 		Version            string              `json:"version"`
 		Homepage           string              `json:"homepage"`
@@ -53,3 +54,12 @@ type (
 		Version string `json:"version"`
 	}
 )
+
+func NewPackageFileFromJson(pfJson []byte) (*PackageFile, error) {
+	pf := &PackageFile{}
+	err := json.Unmarshal(pfJson,pf)
+	if err != nil {
+		return nil, err
+	}
+	return pf, nil
+}

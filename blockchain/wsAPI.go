@@ -1,4 +1,5 @@
 package blockchain
+/*
 
 // This handles socket-based rpc. Part of it is reacting to requests sent from the
 // client, and part of it is reacting to changes in the ethereum world state,
@@ -51,7 +52,7 @@ type WebSocketAPI struct {
 	name       string
 	mappings   map[string]api.WsAPIMethod
 	bc         modules.Blockchain
-	conn       api.WebSocketObj
+	session    api.WsSession
 	bcListener *BcListener
 	blockQueue *util.BlockMiniQueue
 	wsUpdated  bool
@@ -83,8 +84,8 @@ func newWebSocketAPI(bc modules.Blockchain) *WebSocketAPI {
 	return bcAPI
 }
 
-func (bcAPI *WebSocketAPI) SetConnection(wsConn api.WebSocketObj) {
-	bcAPI.conn = wsConn
+func (bcAPI *WebSocketAPI) SetSession(wsSession api.WsSession) {
+	bcAPI.session = wsSession
 }
 
 func (bcAPI *WebSocketAPI) Init() {
@@ -109,8 +110,6 @@ func (bcAPI *WebSocketAPI) HandleRPC(rpcReq *api.Request) (*api.Response, error)
 
 	// Run the method.
 	bcAPI.mappings[methodName](rpcReq, resp)
-	// Add a timestamp.
-	resp.Timestamp = getTimestamp()
 	// The ID is the method being called, for now.
 	resp.Id = methodName
 
@@ -229,7 +228,7 @@ func (bcAPI *WebSocketAPI) BlockMiniByHash(req *api.Request, resp *api.Response)
 		return
 	}
 
-	retVal := &modules.BlockMiniData{}
+	retVal := &modules.BlockMini{}
 	fmt.Printf("Block %s\n", params.SVal)
 	return
 
@@ -239,7 +238,7 @@ func (bcAPI *WebSocketAPI) BlockMiniByHash(req *api.Request, resp *api.Response)
 		return
 	}
 
-	getBlockMiniDataFromBlock(bcAPI.bc, retVal, block)
+	getBlockMiniFromBlock(bcAPI.bc, retVal, block)
 
 	resp.Result = retVal
 
@@ -296,7 +295,7 @@ func (bcAPI *WebSocketAPI) Transact(req *api.Request, resp *api.Response) {
 	// Contract create
 	if params.Recipient == "" {
 		fmt.Println("Processing contract create tx")
-		addr, err := bcAPI.bc.Script(params.Data, "lll")
+		addr, err := bcAPI.bc.Script(params.Data, "lll-literal")
 		if err != nil {
 			retVal.Compiled = false
 			retVal.Error = err.Error()
@@ -313,13 +312,23 @@ func (bcAPI *WebSocketAPI) Transact(req *api.Request, resp *api.Response) {
 		retVal.Success = true
 		retVal.Hash = hash
 		// It's a message
-	} else {
+	} else if params.Value == "" {
 		fmt.Println("Processing message")
 		txData := strings.Split(params.Data, "\n")
 		for idx, val := range txData {
 			txData[idx] = strings.Trim(val, " ")
 		}
 
+		hash, _ := bcAPI.bc.Msg(params.Recipient, txData)
+		retVal.Success = true
+		retVal.Hash = hash
+	} else {
+		// TODO general purpose transaction.
+		fmt.Println("Processing message")
+		txData := strings.Split(params.Data, "\n")
+		for idx, val := range txData {
+			txData[idx] = strings.Trim(val, " ")
+		}
 		hash, _ := bcAPI.bc.Msg(params.Recipient, txData)
 		retVal.Success = true
 		retVal.Hash = hash
@@ -334,16 +343,14 @@ func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 	resp = &api.Response{}
 	resp.Id = "NumBlocks"
 	resp.Result = &modules.VInteger{IVal: len(blocks) - 1}
-	resp.Timestamp = getTimestamp()
-	bcAPI.conn.WriteTextMsg(resp)
+	bcAPI.session.WriteJsonMsg(resp)
 
 	// Send blocks one at a time.
 	for i := 0; i < len(blocks); i++ {
 		resp = &api.Response{}
 		resp.Id = "Blocks"
 		resp.Result = blocks[i]
-		resp.Timestamp = getTimestamp()
-		bcAPI.conn.WriteTextMsg(resp)
+		bcAPI.session.WriteJsonMsg(resp)
 		time.Sleep(50)
 	}
 
@@ -353,8 +360,7 @@ func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 	resp = &api.Response{}
 	resp.Id = "NumAccounts"
 	resp.Result = &modules.VInteger{IVal: worldSize}
-	resp.Timestamp = getTimestamp()
-	bcAPI.conn.WriteTextMsg(resp)
+	bcAPI.session.WriteJsonMsg(resp)
 
 	// Send one at a time.
 	for _, hash := range accounts.Order {
@@ -364,8 +370,7 @@ func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 		accMini := &modules.AccountMini{}
 		getAccountMiniFromAccount(accMini, acc)
 		resp.Result = accMini
-		resp.Timestamp = getTimestamp()
-		bcAPI.conn.WriteTextMsg(resp)
+		bcAPI.session.WriteJsonMsg(resp)
 		time.Sleep(50)
 	}
 
@@ -377,8 +382,7 @@ func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 		resp = &api.Response{}
 		resp.Id = "BlockAdded"
 		resp.Result = bcAPI.blockQueue.Pop()
-		resp.Timestamp = getTimestamp()
-		bcAPI.conn.WriteTextMsg(resp)
+		bcAPI.session.WriteJsonMsg(resp)
 	}
 
 	bcAPI.wsUpdated = true
@@ -387,8 +391,7 @@ func (bcAPI *WebSocketAPI) WorldState(req *api.Request, resp *api.Response) {
 	resp = &api.Response{}
 	resp.Id = "WorldStateDone"
 	resp.Result = &modules.NoArgs{}
-	resp.Timestamp = getTimestamp()
-	bcAPI.conn.WriteTextMsg(resp)
+	bcAPI.session.WriteJsonMsg(resp)
 
 }
 
@@ -414,7 +417,7 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 	bl.txPostChannel = make(chan events.Event, 10)
 	bl.txPostFailChannel = make(chan events.Event, 10)
 	bl.stopChannel = make(chan bool)
-	idStr := strconv.Itoa(int(bl.bcAPI.conn.SessionId()))
+	idStr := strconv.Itoa(int(bl.bcAPI.session.SessionId()))
 	c := "newBlock"
 	bl.blockChannel = bl.bcAPI.bc.Subscribe(c+idStr, c, "")
 	c = "newTx:pre"
@@ -437,14 +440,13 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				fmt.Println("Block added")
 				resp := &api.Response{}
 				resp.Id = "BlockAdded"
-				bd := &modules.BlockMiniData{}
-				getBlockMiniDataFromBlock(bl.bcAPI.bc, bd, block)
+				bd := &modules.BlockMini{}
+				getBlockMiniFromBlock(bl.bcAPI.bc, bd, block)
 				if bl.bcAPI.wsUpdated == false {
 					bl.bcAPI.blockQueue.Push(bd)
 				} else {
 					resp.Result = bd
-					resp.Timestamp = getTimestamp()
-					bl.bcAPI.conn.WriteTextMsg(resp)
+					bl.bcAPI.session.WriteJsonMsg(resp)
 				}
 			case evt := <-bl.txPreChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
@@ -454,8 +456,7 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				resp := &api.Response{}
 				resp.Id = "TxPre"
 				resp.Result = tx
-				resp.Timestamp = getTimestamp()
-				bl.bcAPI.conn.WriteTextMsg(resp)
+				bl.bcAPI.session.WriteJsonMsg(resp)
 			case evt := <-bl.txPreFailChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
 				if tx == nil {
@@ -465,8 +466,7 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				resp.Id = "TxPreFail"
 				resp.Result = tx
 				resp.Error = tx.Error
-				resp.Timestamp = getTimestamp()
-				bl.bcAPI.conn.WriteTextMsg(resp)
+				bl.bcAPI.session.WriteJsonMsg(resp)
 			case evt := <-bl.txPostChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
 				if tx == nil {
@@ -475,8 +475,7 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				resp := &api.Response{}
 				resp.Id = "TxPost"
 				resp.Result = tx
-				resp.Timestamp = getTimestamp()
-				bl.bcAPI.conn.WriteTextMsg(resp)
+				bl.bcAPI.session.WriteJsonMsg(resp)
 			case evt := <-bl.txPostFailChannel:
 				tx, _ := evt.Resource.(*modules.Transaction)
 				if tx == nil {
@@ -486,8 +485,7 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				resp.Id = "TxPostFail"
 				resp.Result = tx
 				resp.Error = tx.Error
-				resp.Timestamp = getTimestamp()
-				bl.bcAPI.conn.WriteTextMsg(resp)
+				bl.bcAPI.session.WriteJsonMsg(resp)
 			case <-bl.stopChannel:
 				// Quit this
 				return
@@ -498,7 +496,7 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 }
 
 func (bl *BcListener) Close() {
-	idStr := strconv.Itoa(int(bl.bcAPI.conn.SessionId()))
+	idStr := strconv.Itoa(int(bl.bcAPI.session.SessionId()))
 	c := "newBlock"
 	fmt.Printf("Unregister: " + c + idStr)
 	bl.bcAPI.bc.UnSubscribe(c + idStr)
@@ -515,7 +513,4 @@ func (bl *BcListener) Close() {
 	fmt.Printf("Unregister: " + c + idStr)
 	bl.bcAPI.bc.UnSubscribe(c + idStr)
 }
-
-func getTimestamp() int {
-	return int(time.Now().In(time.UTC).UnixNano() >> 6)
-}
+*/

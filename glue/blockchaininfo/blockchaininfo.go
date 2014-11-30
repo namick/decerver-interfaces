@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/eris-ltd/decerver-interfaces/api"
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/modules"
@@ -44,7 +43,7 @@ func NewBlkChainInfo() *BlkChainInfo {
 */
 
 // Register sets the module config settings and returns nile
-func (b *BlkChainInfo) Register(fileIO core.FileIO, registry api.ApiRegistry, runtime core.Runtime, eReg events.EventRegistry) error {
+func (b *BlkChainInfo) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
 	b.config = path.Join(fileIO.Modules(), "blockchain", "config")
 	return nil
 }

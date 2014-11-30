@@ -10,9 +10,9 @@ import (
 	"time"
     "fmt"
 
-	"github.com/eris-ltd/decerver-interfaces/api"
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
+	"github.com/eris-ltd/decerver-interfaces/modules"
 
     rpc "github.com/conformal/btcrpcclient"
 	"github.com/conformal/btcutil"
@@ -35,11 +35,11 @@ type BTC struct {
     walletproc *os.Process
 }
 
-func (b *BTC) RegisterModule(registry api.ApiRegistry, logger core.LogSystem) error {
-	return nil
+func (b *BTC) Register(fileIO core.FileIO, runtime core.Runtime, eReg events.EventRegistry) error {
+    return nil
 }
 
-func NewBtcd()*BTC{
+func NewBtcd() *BTC{
     return &BTC{}
 }
 
@@ -279,12 +279,12 @@ func (b *BTC) IsAutocommit() bool {
    BTCD does not yet have support for mining and account balances
 */
 
-func (b *BTC) State() core.State {
+func (b *BTC) State() modules.State {
 	// not currently supported for btcd
-	return core.State{}
+	return modules.State{}
 }
 
-func (b *BTC) Storage(target string) core.Storage {
+func (b *BTC) Storage(target string) modules.Storage {
 	// not currently supported for btcd
-	return core.Storage{}
+	return modules.Storage{}
 }
