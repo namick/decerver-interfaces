@@ -186,8 +186,9 @@ func (mjs *MonkJs) SetAddress(addr string) bool {
 	}
 }
 
-func (mjs *MonkJs) SetAddressN(n int) error {
-	return mjs.mm.SetAddressN(n)
+func (mjs *MonkJs) SetAddressN(n int) string {
+	mjs.mm.SetAddressN(n)
+	return ""
 }
 
 func (mjs *MonkJs) NewAddress(set bool) string {

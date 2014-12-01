@@ -81,6 +81,31 @@ type KeyManager interface {
 	AddressCount() int
 }
 
+// Default JsObjects comes with the data + an error field, like this:
+// Data is a string
+// {
+//	   "Data" : data,
+//	   "Error" : error
+// }
+
+type FileSystem interface {
+	KeyManager
+
+	Get(cmd string, params ...string) interface{}
+	Push(cmd string, params ...string) JsObject // string
+
+	GetBlock(hash string) JsObject // []byte
+	GetFile(hash string) JsObject // []byte
+	// GetStream(hash string) []byte
+	GetTree(hash string, depth int) JsObject // FsNode
+
+	PushBlock(block []byte) JsObject // string
+	PushBlockString(block string) JsObject // string
+	PushFile(fpath string) JsObject // string
+	PushTree(fpath string, depth int) JsObject // string
+}
+
+/*
 type FileSystem interface {
 	KeyManager
 
@@ -96,7 +121,5 @@ type FileSystem interface {
 	PushBlockString(block string) (string, error)
 	PushFile(fpath string) (string, error)
 	PushTree(fpath string, depth int) (string, error)
-
-	Subscribe(name string, event string, target string) chan events.Event
-	UnSubscribe(name string)
 }
+*/

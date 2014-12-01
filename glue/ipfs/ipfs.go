@@ -13,7 +13,6 @@ import (
 
 	decore "github.com/eris-ltd/decerver-interfaces/core"
 	events "github.com/eris-ltd/decerver-interfaces/events"
-	modules "github.com/eris-ltd/decerver-interfaces/modules"
 
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	commands "github.com/jbenet/go-ipfs/commands"
@@ -30,6 +29,8 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
+
+type JsObject map[string]interface{}
 
 var (
 	StreamSize = 1024
@@ -62,14 +63,17 @@ func NewIpfs() *IpfsModule {
 
 func (mod *IpfsModule) Init() error {
 	// config is RootDir/config
+	
 	filename, err := config.Filename(mod.Config.RootDir)
 	if err != nil {
 		return err
 	}
+	
 	// load the config file
 	// if non-existant, initialize ipfs
 	// on the machine
 	mod.ipfs.cfg, err = config.Load(filename)
+	
 	if err != nil {
 		if strings.Contains(err.Error(), "init") {
 			c := exec.Command("ipfs", "init", "-d="+ mod.Config.RootDir)
@@ -84,9 +88,9 @@ func (mod *IpfsModule) Init() error {
 		}
 		return mod.Init()
 	}
-
+	
 	u.SetLogLevel("*", logLevels[mod.Config.LogLevel])
-
+	
 	/*if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
 		return nil, err
 	}*/
@@ -123,46 +127,6 @@ func (mod *IpfsModule) Name() string {
 	return "ipfs"
 }
 
-func (mod *IpfsModule) Get(cmd string, params ...string) (interface{}, error) {
-	return mod.ipfs.Get(cmd, params...)
-}
-
-func (mod *IpfsModule) Push(cmd string, params ...string) (string, error) {
-	return mod.ipfs.Push(cmd, params...)
-}
-
-func (mod *IpfsModule) GetBlock(hash string) ([]byte, error) {
-	return mod.ipfs.GetBlock(hash)
-}
-
-func (mod *IpfsModule) GetFile(hash string) ([]byte, error) {
-	return mod.ipfs.GetFile(hash)
-}
-
-func (mod *IpfsModule) GetStream(hash string) (chan []byte, error) {
-	return mod.ipfs.GetStream(hash)
-}
-
-func (mod *IpfsModule) GetTree(hash string, depth int) (*modules.FsNode, error) {
-	return mod.ipfs.GetTree(hash, depth)
-}
-
-func (mod *IpfsModule) PushBlock(block []byte) (string, error) {
-	return mod.ipfs.PushBlock(block)
-}
-
-func (mod *IpfsModule) PushBlockString(block string) (string, error) {
-	return mod.ipfs.PushBlockString(block)
-}
-
-func (mod *IpfsModule) PushFile(fpath string) (string, error) {
-	return mod.ipfs.PushFile(fpath)
-}
-
-func (mod *IpfsModule) PushTree(fpath string, depth int) (string, error) {
-	return mod.ipfs.PushTree(fpath, depth)
-}
-
 func (mod *IpfsModule) Subscribe(name string, event string, target string) chan events.Event {
 	return mod.ipfs.Subscribe(name, event, target)
 }
@@ -171,14 +135,60 @@ func (mod *IpfsModule) UnSubscribe(name string) {
 	mod.ipfs.UnSubscribe(name)
 }
 
+func (mod *IpfsModule) Get(cmd string, params ...string) JsObject {
+	return getJsObj(mod.ipfs.Get(cmd, params...))
+}
+
+func (mod *IpfsModule) Push(cmd string, params ...string) JsObject {
+	return getJsObj(mod.ipfs.Push(cmd, params...))
+}
+
+func (mod *IpfsModule) GetBlock(hash string) JsObject {
+	return getJsObj(mod.ipfs.GetBlock(hash))
+}
+
+func (mod *IpfsModule) GetFile(hash string) JsObject {
+	return getJsObj(mod.ipfs.GetFile(hash))
+}
+
+// func (mod *IpfsModule) GetStream(hash string) (chan []byte, error) {
+//	return getJsObj(mod.ipfs.GetStream(hash))
+// }
+
+func (mod *IpfsModule) GetTree(hash string, depth int) JsObject {
+	return getJsObj(mod.ipfs.GetTree(hash, depth))
+}
+
+func (mod *IpfsModule) PushBlock(block []byte) JsObject {
+	return getJsObj(mod.ipfs.PushBlock(block))
+}
+
+func (mod *IpfsModule) PushBlockString(block string) JsObject {
+	return getJsObj(mod.ipfs.PushBlockString(block))
+}
+
+func (mod *IpfsModule) PushFile(fpath string) JsObject {
+	return getJsObj(mod.ipfs.PushFile(fpath))
+}
+
+func (mod *IpfsModule) PushTree(fpath string, depth int) JsObject {
+	return getJsObj(mod.ipfs.PushTree(fpath, depth))
+}
+
 // IpfsModule should satisfy KeyManager
 
 func (mod *IpfsModule) ActiveAddress() string {
 	return mod.ipfs.ActiveAddress()
 }
 
-func (mod *IpfsModule) Address(n int) (string, error) {
-	return mod.ipfs.Address(n)
+func (mod *IpfsModule) Addresses() JsObject {
+	mod.ipfs.ActiveAddress()
+	return nil
+}
+
+func (mod *IpfsModule) Address(n int) string {
+	ret, _ := mod.ipfs.Address(n)
+	return ret
 }
 
 func (mod *IpfsModule) SetAddress(addr string) error {
@@ -296,45 +306,26 @@ func (ipfs *Ipfs) GetStream(hash string) (chan []byte, error) {
 }
 
 // TODO: depth
-func (ipfs *Ipfs) GetTree(hash string, depth int) (*modules.FsNode, error) {
+func (ipfs *Ipfs) GetTree(hash string, depth int) (JsObject, error) {
 	fpath, err := hexPath2B58(hash)
 	if err != nil {
 		return nil, err
 	}
-	nd, err := ipfs.node.Resolver.ResolvePath(fpath)
-	if err != nil {
-		return nil, err
+	nd, err1 := ipfs.node.Resolver.ResolvePath(fpath)
+	if err1 != nil {
+		return nil, err1
 	}
-	mhash, err := nd.Multihash()
-	if err != nil {
-		return nil, err
+	mhash, err2 := nd.Multihash()
+	if err2 != nil {
+		return nil, err2
 	}
-	tree := modules.FsNode{[]*modules.FsNode{}, "", hex.EncodeToString(mhash)}
-	grabRefs(ipfs.node, nd, &tree)
-	return &tree, nil
+	tree := getTreeNode("",hex.EncodeToString(mhash))
+	err3 := grabRefs(ipfs.node, nd, tree)
+	return tree, err3
 }
 
 func (ipfs *Ipfs) getCmd(cmd string) (interface{}, error) {
 	return nil, nil
-}
-
-func grabRefs(n *core.IpfsNode, nd *mdag.Node, tree *modules.FsNode) error {
-	for _, link := range nd.Links {
-		h := link.Hash
-		newNode := modules.FsNode{[]*modules.FsNode{}, link.Name, h.B58String()}
-		nd, err := n.DAG.Get(util.Key(h))
-		if err != nil {
-			//log.Errorf("error: cannot retrieve %s (%s)", h.B58String(), err)
-			return err
-		}
-		err = grabRefs(n, nd, &newNode)
-		if err != nil {
-			return err
-		}
-
-		tree.Nodes = append(tree.Nodes, &newNode)
-	}
-	return nil
 }
 
 // ...
@@ -481,4 +472,43 @@ func hexPath2B58(p string) (string, error) {
 		return strings.Join(spl, "/"), nil
 	}
 	return spl[0], nil
+}
+
+func getJsObj(data interface{}, err error) JsObject {
+	ret := make(JsObject)
+	if err != nil {
+		ret["Error"] = err.Error()
+		ret["Data"] = ""
+	} else {
+		ret["Error"] = ""
+		ret["Data"] = data
+	}
+	return ret
+}
+
+func getTreeNode(name, hash string) JsObject {
+	obj := make(JsObject)
+	obj["Nodes"] = make([]JsObject,0)
+	obj["Name"] = name
+	obj["Hash"] = hash
+	return obj
+}
+
+func grabRefs(n *core.IpfsNode, nd *mdag.Node, tree JsObject) error {
+	for _, link := range nd.Links {
+		h := link.Hash
+		newNode := getTreeNode(link.Name, h.B58String())
+		nd, err := n.DAG.Get(util.Key(h))
+		if err != nil {
+			//log.Errorf("error: cannot retrieve %s (%s)", h.B58String(), err)
+			return err
+		}
+		err = grabRefs(n, nd, newNode)
+		if err != nil {
+			return err
+		}
+		nds := tree["Nodes"].([]JsObject)
+		nds = append(nds, newNode)
+	}
+	return nil
 }
