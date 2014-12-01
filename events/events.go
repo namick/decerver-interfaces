@@ -5,7 +5,6 @@ package events
 // it implements the Subscriber interface and pass it to the event system.
 import (
 	"time"
-	
 )
 
 // This interface allow modules to subscribe to and publish events. It is implemented by the 
@@ -38,7 +37,4 @@ type Subscriber interface {
 	Event() string
 	// The target (if any).
 	Target() string
-	// This is called when the subscription is removed. Could for example be used to terminate the
-	// channel reading process.
-	Close()
 }
