@@ -13,7 +13,7 @@ import (
 
 	decore "github.com/eris-ltd/decerver-interfaces/core"
 	events "github.com/eris-ltd/decerver-interfaces/events"
-
+	"github.com/eris-ltd/decerver-interfaces/modules"
 	blocks "github.com/jbenet/go-ipfs/blocks"
 	commands "github.com/jbenet/go-ipfs/commands"
 	config "github.com/jbenet/go-ipfs/config"
@@ -29,8 +29,6 @@ import (
 	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
 	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
-
-type JsObject map[string]interface{}
 
 var (
 	StreamSize = 1024
@@ -135,76 +133,89 @@ func (mod *IpfsModule) UnSubscribe(name string) {
 	mod.ipfs.UnSubscribe(name)
 }
 
-func (mod *IpfsModule) Get(cmd string, params ...string) JsObject {
-	return getJsObj(mod.ipfs.Get(cmd, params...))
+func (mod *IpfsModule) Get(cmd string, params ...string) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.Get(cmd, params...))
 }
 
-func (mod *IpfsModule) Push(cmd string, params ...string) JsObject {
-	return getJsObj(mod.ipfs.Push(cmd, params...))
+func (mod *IpfsModule) Push(cmd string, params ...string) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.Push(cmd, params...))
 }
 
-func (mod *IpfsModule) GetBlock(hash string) JsObject {
-	return getJsObj(mod.ipfs.GetBlock(hash))
+func (mod *IpfsModule) GetBlock(hash string) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.GetBlock(hash))
 }
 
-func (mod *IpfsModule) GetFile(hash string) JsObject {
-	return getJsObj(mod.ipfs.GetFile(hash))
+func (mod *IpfsModule) GetFile(hash string) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.GetFile(hash))
 }
 
 // func (mod *IpfsModule) GetStream(hash string) (chan []byte, error) {
-//	return getJsObj(mod.ipfs.GetStream(hash))
+//	return modules.JsReturnVal(mod.ipfs.GetStream(hash))
 // }
 
-func (mod *IpfsModule) GetTree(hash string, depth int) JsObject {
-	return getJsObj(mod.ipfs.GetTree(hash, depth))
+func (mod *IpfsModule) GetTree(hash string, depth int) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.GetTree(hash, depth))
 }
 
-func (mod *IpfsModule) PushBlock(block []byte) JsObject {
-	return getJsObj(mod.ipfs.PushBlock(block))
+func (mod *IpfsModule) PushBlock(block []byte) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.PushBlock(block))
 }
 
-func (mod *IpfsModule) PushBlockString(block string) JsObject {
-	return getJsObj(mod.ipfs.PushBlockString(block))
+func (mod *IpfsModule) PushBlockString(block string) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.PushBlockString(block))
 }
 
-func (mod *IpfsModule) PushFile(fpath string) JsObject {
-	return getJsObj(mod.ipfs.PushFile(fpath))
+func (mod *IpfsModule) PushFile(fpath string) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.PushFile(fpath))
 }
 
-func (mod *IpfsModule) PushTree(fpath string, depth int) JsObject {
-	return getJsObj(mod.ipfs.PushTree(fpath, depth))
+func (mod *IpfsModule) PushTree(fpath string, depth int) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.PushTree(fpath, depth))
 }
 
 // IpfsModule should satisfy KeyManager
 
-func (mod *IpfsModule) ActiveAddress() string {
-	return mod.ipfs.ActiveAddress()
+func (mod *IpfsModule) ActiveAddress() modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.ActiveAddress(), nil)
 }
 
-func (mod *IpfsModule) Addresses() JsObject {
-	mod.ipfs.ActiveAddress()
-	return nil
+func (mod *IpfsModule) Addresses() modules.JsObject {
+	count := mod.ipfs.AddressCount()
+	addresses := make(modules.JsObject)
+	array := make([]string, count)
+	
+	for i := 0; i < count; i++ {
+		addr, _ := mod.ipfs.Address(i)
+		array[i] = addr
+	}
+	addresses["Addresses"] = array
+	return modules.JsReturnVal(addresses,nil)
 }
 
-func (mod *IpfsModule) Address(n int) string {
-	ret, _ := mod.ipfs.Address(n)
-	return ret
+func (mod *IpfsModule) Address(n int) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.Address(n))
 }
 
-func (mod *IpfsModule) SetAddress(addr string) error {
-	return mod.ipfs.SetAddress(addr)
+func (mod *IpfsModule) SetAddress(addr string) modules.JsObject {
+	err := mod.ipfs.SetAddress(addr)
+	if err != nil {
+		return modules.JsReturnValErr(err)
+	} else {
+		// No error means success.
+		return modules.JsReturnValNoErr(nil)	
+	}
 }
 
-func (mod *IpfsModule) SetAddressN(n int) error {
-	return mod.ipfs.SetAddressN(n)
+func (mod *IpfsModule) SetAddressN(n int) modules.JsObject {
+	return modules.JsReturnVal(nil, mod.ipfs.SetAddressN(n))
 }
 
-func (mod *IpfsModule) NewAddress(set bool) string {
-	return mod.ipfs.NewAddress(set)
+func (mod *IpfsModule) NewAddress(set bool) modules.JsObject {
+	return modules.JsReturnVal(mod.ipfs.NewAddress(set))
 }
 
-func (mod *IpfsModule) AddressCount() int {
-	return mod.ipfs.AddressCount()
+func (mod *IpfsModule) AddressCount() modules.JsObject {
+	return modules.JsReturnValNoErr(mod.ipfs.AddressCount())
 }
 
 // ethereum stores hashes as 32 bytes, but ipfs expects base58 encoding
@@ -306,7 +317,7 @@ func (ipfs *Ipfs) GetStream(hash string) (chan []byte, error) {
 }
 
 // TODO: depth
-func (ipfs *Ipfs) GetTree(hash string, depth int) (JsObject, error) {
+func (ipfs *Ipfs) GetTree(hash string, depth int) (modules.JsObject, error) {
 	fpath, err := hexPath2B58(hash)
 	if err != nil {
 		return nil, err
@@ -423,8 +434,8 @@ func (ipfs *Ipfs) SetAddressN(n int) error {
 }
 
 // We don't create new addresses on the fly
-func (ipfs *Ipfs) NewAddress(set bool) string {
-	return ""
+func (ipfs *Ipfs) NewAddress(set bool) (string, error) {
+	return "", fmt.Errorf("It is not possible to create new addresses during runtime.")
 }
 
 // we only have one ipfs address
@@ -474,27 +485,15 @@ func hexPath2B58(p string) (string, error) {
 	return spl[0], nil
 }
 
-func getJsObj(data interface{}, err error) JsObject {
-	ret := make(JsObject)
-	if err != nil {
-		ret["Error"] = err.Error()
-		ret["Data"] = ""
-	} else {
-		ret["Error"] = ""
-		ret["Data"] = data
-	}
-	return ret
-}
-
-func getTreeNode(name, hash string) JsObject {
-	obj := make(JsObject)
-	obj["Nodes"] = make([]JsObject,0)
+func getTreeNode(name, hash string) modules.JsObject {
+	obj := make(modules.JsObject)
+	obj["Nodes"] = make([]modules.JsObject,0)
 	obj["Name"] = name
 	obj["Hash"] = hash
 	return obj
 }
 
-func grabRefs(n *core.IpfsNode, nd *mdag.Node, tree JsObject) error {
+func grabRefs(n *core.IpfsNode, nd *mdag.Node, tree modules.JsObject) error {
 	for _, link := range nd.Links {
 		h := link.Hash
 		newNode := getTreeNode(link.Name, h.B58String())
@@ -507,7 +506,7 @@ func grabRefs(n *core.IpfsNode, nd *mdag.Node, tree JsObject) error {
 		if err != nil {
 			return err
 		}
-		nds := tree["Nodes"].([]JsObject)
+		nds := tree["Nodes"].([]modules.JsObject)
 		nds = append(nds, newNode)
 	}
 	return nil
