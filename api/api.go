@@ -93,10 +93,7 @@ type (
 )
 
 // Webserver and api
-type (
-	
-	Server interface {
-		// This will register html page loading + http and websocket endpoints for the dapp.
-		RegisterDapp(dappId string)
-	}
-)
+type Server interface {
+	// This will register html page loading + http and websocket endpoints for the dapp.
+	RegisterDapp(dappId string)
+}

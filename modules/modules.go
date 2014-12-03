@@ -31,6 +31,7 @@ type (
 		Start() error
 		Shutdown() error
 		Name() string
+		// TODO No
 		Subscribe(name, event, target string) chan events.Event
 		UnSubscribe(name string)
 	}
@@ -45,18 +46,18 @@ type (
 type Blockchain interface {
 	KeyManager
 	WorldState() JsObject
-	State() *State
+	State() JsObject
 	Storage(target string) JsObject
 	Account(target string) JsObject
-	StorageAt(target, storage string) string
+	StorageAt(target, storage string) JsObject
 
-	BlockCount() int
-	LatestBlock() string
+	BlockCount() JsObject
+	LatestBlock() JsObject
 	Block(hash string) JsObject
 
-	IsScript(target string) bool
+	IsScript(target string) JsObject
 
-	Tx(addr, amt string) (string, error)
+	Tx(addr, amt string) JsObject
 	Msg(addr string, data []string) JsObject
 	Script(file, lang string) JsObject
 
@@ -64,21 +65,22 @@ type Blockchain interface {
 	// subscribe to event
 
 	// commit cached txs (mine a block)
-	Commit()
+	Commit() JsObject
 	// commit continuously
-	AutoCommit(toggle bool)
-	IsAutocommit() bool
+	AutoCommit(toggle bool) JsObject
+	IsAutocommit() JsObject
 }
 
 type KeyManager interface {
-	ActiveAddress() string
+	ActiveAddress() JsObject
 	Address(n int) JsObject
-	SetAddress(addr string) string
-	SetAddressN(n int) string
-	NewAddress(set bool) string
-	// Don't want to pass numbers from otto if it can be avoided.
+	SetAddress(addr string) JsObject
+	SetAddressN(n int) JsObject
+	NewAddress(set bool) JsObject
+	// Don't want to pass numbers from otto if it can be avoided
+	// (otto tends to switch around between int and float types).
 	Addresses() JsObject
-	AddressCount() int
+	AddressCount() JsObject
 }
 
 // Default JsObjects comes with the data + an error field, like this:
@@ -91,12 +93,12 @@ type KeyManager interface {
 type FileSystem interface {
 	KeyManager
 
-	Get(cmd string, params ...string) interface{}
+	Get(cmd string, params ...string) JsObject
 	Push(cmd string, params ...string) JsObject // string
 
 	GetBlock(hash string) JsObject // []byte
 	GetFile(hash string) JsObject // []byte
-	// GetStream(hash string) []byte
+	GetStream(hash string) JsObject // []byte
 	GetTree(hash string, depth int) JsObject // FsNode
 
 	PushBlock(block []byte) JsObject // string
@@ -105,21 +107,33 @@ type FileSystem interface {
 	PushTree(fpath string, depth int) JsObject // string
 }
 
-/*
-type FileSystem interface {
-	KeyManager
-
-	Get(cmd string, params ...string) (interface{}, error)
-	Push(cmd string, params ...string) (string, error)
-
-	GetBlock(hash string) ([]byte, error)
-	GetFile(hash string) ([]byte, error)
-	GetStream(hash string) (chan []byte, error)
-	GetTree(hash string, depth int) (*FsNode, error)
-
-	PushBlock(block []byte) (string, error)
-	PushBlockString(block string) (string, error)
-	PushFile(fpath string) (string, error)
-	PushTree(fpath string, depth int) (string, error)
+// Converts a data and an error value into a javascript ready object.
+// All methods on objects that modules bind to the js runtime should return
+// this.
+func JsReturnVal(data interface{}, err error) JsObject{
+	ret := make(JsObject)
+	if err != nil {
+		ret["Error"] = err.Error()
+		ret["Data"] = nil
+	} else {
+		ret["Error"] = ""
+		ret["Data"] = data
+	}
+	return ret
 }
-*/
+
+// If there is no error
+func JsReturnValNoErr(data interface{}) JsObject{
+	ret := make(JsObject)
+	ret["Error"] = ""
+	ret["Data"] = data
+	return ret
+}
+
+// If there is only an error
+func JsReturnValErr(err error) JsObject{
+	ret := make(JsObject)
+	ret["Error"] = err.Error()
+	ret["Data"] = nil
+	return ret
+}

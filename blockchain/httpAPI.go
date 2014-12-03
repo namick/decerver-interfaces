@@ -1,5 +1,5 @@
 package blockchain
-
+/*
 import (
 	"github.com/eris-ltd/decerver-interfaces/modules"
 	"net/http"
@@ -91,3 +91,4 @@ func (mapi *Monk) Account(r *http.Request, args *modules.VString, reply *modules
  	// TODO add
 	return nil
 }
+*/

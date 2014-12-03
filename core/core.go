@@ -1,6 +1,9 @@
 package core
 
-import ()
+import (
+	"log"
+	"os"
+)
 
 type DCConfig struct {
 	RootDir    string `json:"decerverDirectory"`
@@ -47,4 +50,8 @@ type Runtime interface {
 	RunFunction(funcName string, params []string) (interface{}, error)
 	CallFunc(funcName string, param ...interface{}) (interface{}, error)
 	CallFuncOnObj(objName, funcName string, param ...interface{}) (interface{}, error)
+}
+
+func NewLogger(name string) *log.Logger {
+	return log.New(os.Stdout,"[" + name + "] ", log.LstdFlags)
 }
