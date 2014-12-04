@@ -17,7 +17,6 @@ import (
 	"github.com/eris-ltd/thelonious/monkcrypto"
 	"github.com/eris-ltd/thelonious/monkdoug"
 	"github.com/eris-ltd/thelonious/monklog"
-	"github.com/eris-ltd/thelonious/monkreact"
 	"github.com/eris-ltd/thelonious/monkstate"
 	"github.com/eris-ltd/thelonious/monkutil"
 )
@@ -27,8 +26,14 @@ var (
 	usr, _ = user.Current() // error?!
 )
 
+// This is a dead simple blockchain module for deploying genesis blocks from epm
+// It does not have real blockchain functionality (no network, chain)
+// It is simply for constructing a genesis block from txs, msgs, and contracts
+// It currently expects an in-process thelonious to be running (to have setup the db)
+// TODO: robustify so it can standalone
+
 //Logging
-var logger *monklog.Logger = monklog.NewLogger("GenBlockModuleChain(decerver)")
+var logger *monklog.Logger = monklog.NewLogger("GenBlock")
 
 // implements decerver-interfaces Module
 type GenBlockModule struct {
@@ -37,17 +42,10 @@ type GenBlockModule struct {
 	keyManager *monkcrypto.KeyManager
 }
 
-type Chan struct {
-	ch      chan events.Event
-	reactCh chan monkreact.Event
-	name    string
-	event   string
-	target  string
-}
-
-func NewGenBlockModule() *GenBlockModule {
+func NewGenBlockModule(block *monkchain.Block) *GenBlockModule {
 	g := new(GenBlockModule)
 	g.Config = DefaultConfig
+	g.block = block
 	return g
 }
 
@@ -66,17 +64,19 @@ func (mod *GenBlockModule) Init() error {
 	mod.gConfig()
 
 	// what to do with db...
-	db := NewDatabase(mod.Config.DbName)
-	monkutil.Config.Db = db
+	//db := NewDatabase(mod.Config.DbName)
+	//monkutil.Config.Db = db
 
-	keyManager := NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, db)
+	keyManager := NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
 	err := keyManager.Init(mod.Config.KeySession, mod.Config.KeyCursor, false)
 	if err != nil {
 		log.Fatal(err)
 	}
 	mod.keyManager = keyManager
 
-	mod.block = monkchain.NewBlockFromBytes(monkutil.Encode(monkchain.Genesis))
+	if mod.block == nil {
+		mod.block = monkchain.NewBlockFromBytes(monkutil.Encode(monkchain.Genesis))
+	}
 
 	return nil
 }
@@ -238,27 +238,12 @@ func (mod *GenBlockModule) Msg(addr string, data []string) (string, error) {
 }
 
 func (mod *GenBlockModule) Script(file, lang string) (string, error) {
+	fmt.Println("deploying...", len(file))
 	_, _, err := monkdoug.MakeApplyTx(file, []byte{4}, nil, mod.fetchKeyPair(), mod.block)
 	if err != nil {
 		fmt.Println(err)
 		return "", err
 	}
-	/*
-		var script string
-		if lang == "lll-literal" {
-			script = CompileLLL(file, true)
-		}
-		if lang == "lll" {
-			script = CompileLLL(file, false) // if lll, compile and pass along
-		} else if lang == "mutan" {
-			s, _ := ioutil.ReadFile(file) // if mutan, pass along and pipe will compile
-			script = string(s)
-		} else if lang == "serpent" {
-
-		} else {
-			script = file
-		}*/
-
 	return "", nil
 }
 
@@ -355,12 +340,6 @@ func (mod *GenBlockModule) fetchPriv() string {
 
 func (mod *GenBlockModule) fetchKeyPair() *monkcrypto.KeyPair {
 	return mod.keyManager.KeyPair()
-}
-
-// this is bad but I need it for testing
-// TODO: deprecate!
-func (mod *GenBlockModule) FetchPriv() string {
-	return mod.fetchPriv()
 }
 
 func (mod *GenBlockModule) Stop() {

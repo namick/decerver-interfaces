@@ -146,15 +146,6 @@ func NewThelonious(db monkutil.Database, clientIdentity monkwire.ClientIdentity,
 	return ethereum
 }*/
 
-func StartThelonious(ethereum *eth.Thelonious, UseSeed bool) {
-	logger.Infof("Starting %s", ethereum.ClientIdentity())
-	ethereum.Start(UseSeed)
-	RegisterInterrupt(func(sig os.Signal) {
-		ethereum.Stop()
-		monklog.Flush()
-	})
-}
-
 func ShowGenesis(ethereum *eth.Thelonious) {
 	logger.Infoln(ethereum.ChainManager().Genesis())
 	exit(nil)
