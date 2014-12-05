@@ -15,38 +15,23 @@ import (
 var ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
 
 type ChainConfig struct {
-	LocalHost        string `json:"local_host"`
-	LocalPort        int    `json:"local_port"`
-	RemoteHost       string `json:"remote_host"`
-	RemotePort       int    `json:"remote_port"`
-	Mining           bool   `json:"mining"`
-	MaxPeers         int    `json:"max_peers"`
 	ConfigFile       string `json:"config_file"`
 	RootDir          string `json:"root_dir"`
 	LogFile          string `json:"log_file"`
 	DbName           string `json:"db_name"`
 	LLLPath          string `json:"lll_path"`
 	ContractPath     string `json:"contract_path"`
-	ClientIdentifier string `json:"client"`
-	Version          string `json:"version"`
-	Identifier       string `json:"id"`
 	KeySession       string `json:"key_session"`
 	KeyStore         string `json:"key_store"`
 	KeyCursor        int    `json:"key_cursor"`
 	KeyFile          string `json:"key_file"`
-	GenesisConfig    string `json:"genesis_config"`
 	LogLevel         int    `json:"log_level"`
-	Adversary        int    `json:"adversary"`
+    Unique           bool   `json:"unique"`
+    PrivateKey       string `json:"private_key"`
 }
 
 // set default config object
 var DefaultConfig = &ChainConfig{
-	LocalHost:  "0.0.0.0",
-	LocalPort:  30303,
-	RemoteHost: "",
-	RemotePort: 30303,
-	Mining:     false,
-	MaxPeers:   10,
 	ConfigFile: "config",
 	RootDir:    path.Join(usr.HomeDir, ".monkchain2"),
 	DbName:     "database",
@@ -55,15 +40,10 @@ var DefaultConfig = &ChainConfig{
 	//LLLPath: path.Join(homeDir(), "cpp-ethereum/build/lllc/lllc"),
 	LLLPath:          "NETCALL",
 	ContractPath:     path.Join(ErisLtd, "eris-std-lib"),
-	ClientIdentifier: "Thelonious(decerver)",
-	Version:          "0.5.17",
-	Identifier:       "chainId",
 	KeyStore:         "file",
 	KeyCursor:        0,
 	KeyFile:          path.Join(ErisLtd, "thelonious", "monk", "keys.txt"),
-	GenesisConfig:    path.Join(ErisLtd, "thelonious", "monk", "genesis-std.json"),
 	LogLevel:         5,
-	Adversary:        0,
 }
 
 // can these methods be functions in decerver that take the modules as argument?

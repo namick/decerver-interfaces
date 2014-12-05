@@ -269,6 +269,39 @@ func (m *GenBlockModule) IsAutocommit() bool {
 	return false
 }
 
+func (mod *GenBlockModule) ChainId() ([]byte, error){
+    keys, err := mod.selectKeyPair()
+    if err != nil{
+        return nil, err
+    }
+    sig := mod.block.Sign(keys.PrivateKey)
+    return monkcrypto.Sha3Bin(sig)[:20], nil
+}
+
+func (mod *GenBlockModule) selectKeyPair() (*monkcrypto.KeyPair, error) {
+    var keys *monkcrypto.KeyPair
+    var err error
+    if mod.Config.Unique {
+        if mod.Config.PrivateKey != "" {
+            // TODO: some kind of encryption here ...
+            decoded := monkutil.Hex2Bytes(mod.Config.PrivateKey)
+            keys, err = monkcrypto.NewKeyPairFromSec(decoded)
+            if err != nil {
+                return nil, fmt.Errorf("Invalid private key", err)
+            }
+        } else {
+            keys = monkcrypto.GenerateNewKeyPair()
+        }
+    } else {
+        static := []byte("11111111112222222222333333333322")
+        keys, err = monkcrypto.NewKeyPairFromSec(static)
+        if err != nil {
+            return nil, fmt.Errorf("Invalid static private", err)
+        }
+    }
+    return keys, nil
+}
+
 /*
    Blockchain interface should also satisfy KeyManager
    All values are hex encoded
