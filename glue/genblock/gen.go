@@ -3,7 +3,6 @@ package genblock
 import (
 	"encoding/hex"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
 	"os/user"
@@ -17,7 +16,6 @@ import (
 	"github.com/eris-ltd/thelonious/monkcrypto"
 	"github.com/eris-ltd/thelonious/monkdoug"
 	"github.com/eris-ltd/thelonious/monklog"
-	"github.com/eris-ltd/thelonious/monkstate"
 	"github.com/eris-ltd/thelonious/monkutil"
 )
 
@@ -35,13 +33,15 @@ var (
 //Logging
 var logger *monklog.Logger = monklog.NewLogger("GenBlock")
 
-// implements decerver-interfaces Module
+// Implements decerver-interfaces Blockchain
+// strictly for using epm to launch genesis blocks
 type GenBlockModule struct {
 	Config     *ChainConfig
 	block      *monkchain.Block
 	keyManager *monkcrypto.KeyManager
 }
 
+// Create a new genesis block module
 func NewGenBlockModule(block *monkchain.Block) *GenBlockModule {
 	g := new(GenBlockModule)
 	g.Config = DefaultConfig
@@ -49,43 +49,43 @@ func NewGenBlockModule(block *monkchain.Block) *GenBlockModule {
 	return g
 }
 
-// register the module with the decerver javascript vm
+// Register the module with the decerver javascript vm
 func (mod *GenBlockModule) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
 	return nil
 }
 
+// Initialize the module by setting config and key manager
 func (mod *GenBlockModule) Init() error {
 	// if didn't call NewGenBlockModule
 	if mod.Config == nil {
 		mod.Config = DefaultConfig
-		//	mod.GenesisConfig = mod.LoadGenesis(m.config.GenesisConfig)
 	}
 
 	mod.gConfig()
 
-	// what to do with db...
-	//db := NewDatabase(mod.Config.DbName)
-	//monkutil.Config.Db = db
+	if monkutil.Config.Db == nil {
+		monkutil.Config.Db = NewDatabase(mod.Config.DbName)
+	}
 
 	keyManager := NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
 	err := keyManager.Init(mod.Config.KeySession, mod.Config.KeyCursor, false)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	mod.keyManager = keyManager
 
 	if mod.block == nil {
 		mod.block = monkchain.NewBlockFromBytes(monkutil.Encode(monkchain.Genesis))
 	}
-
 	return nil
 }
 
-// start the thelonious node
+// This function does nothing. There are no processes to start
 func (mod *GenBlockModule) Start() error {
 	return nil
 }
 
+// No processes to start, no processes to stop
 func (mod *GenBlockModule) Shutdown() error {
 	return nil
 }
@@ -96,31 +96,10 @@ func (mod *GenBlockModule) Name() string {
 }
 
 /*
-   Non-interface functions that otherwise prove useful
-    in standalone applications, testing, and debuging
-*/
-
-// Load genesis json file (so calling pkg need not import monkdoug)
-func (mod *GenBlockModule) LoadGenesis(file string) *monkdoug.GenesisConfig {
-	g := monkdoug.LoadGenesis(file)
-	return g
-}
-
-// Set the genesis json object. This can only be done once
-func (mod *GenBlockModule) SetGenesis(genJson *monkdoug.GenesisConfig) {
-	// reset the permission model struct (since config may have changed)
-	//genJson.SetModel(monkdoug.NewPermModel(genJson))
-	//mod.Config = genJson
-}
-
-func (mod *GenBlockModule) GenBlockModuleState() *monkstate.State {
-	return mod.block.State()
-}
-
-/*
    Implement Blockchain
 */
 
+// Return the world state
 func (mod *GenBlockModule) WorldState() *modules.WorldState {
 	state := mod.block.State()
 	stateMap := &modules.WorldState{make(map[string]*modules.Account), []string{}}
@@ -149,6 +128,7 @@ func (mod *GenBlockModule) State() *modules.State {
 	return stateMap
 }
 
+// Return the entire storage of an address
 func (mod *GenBlockModule) Storage(addr string) *modules.Storage {
 	state := mod.block.State()
 	obj := state.GetOrNewStateObject(monkutil.UserHex2Bytes(addr))
@@ -162,6 +142,7 @@ func (mod *GenBlockModule) Storage(addr string) *modules.Storage {
 	return ret
 }
 
+// Return the account associated with an address
 func (mod *GenBlockModule) Account(target string) *modules.Account {
 	state := mod.block.State()
 	obj := state.GetOrNewStateObject(monkutil.UserHex2Bytes(target))
@@ -182,6 +163,7 @@ func (mod *GenBlockModule) Account(target string) *modules.Account {
 	}
 }
 
+// Return a specific storage slot at a contract address
 func (mod *GenBlockModule) StorageAt(contract_addr string, storage_addr string) string {
 	var saddr *big.Int
 	if monkutil.IsHex(storage_addr) {
@@ -200,18 +182,22 @@ func (mod *GenBlockModule) StorageAt(contract_addr string, storage_addr string) 
 	return monkutil.Bytes2Hex(ret.Bytes())
 }
 
+// This is always 0
 func (mod *GenBlockModule) BlockCount() int {
 	return 0
 }
 
+// Hash of the latest state of the genesis block
 func (mod *GenBlockModule) LatestBlock() string {
 	return monkutil.Bytes2Hex(mod.block.Hash())
 }
 
+// Return the genesis block
 func (mod *GenBlockModule) Block(hash string) *modules.Block {
 	return convertBlock(mod.block)
 }
 
+// Is this account a contract?
 func (mod *GenBlockModule) IsScript(target string) bool {
 	// is contract if storage is empty and no bytecode
 	obj := mod.Account(target)
@@ -222,7 +208,7 @@ func (mod *GenBlockModule) IsScript(target string) bool {
 	return true
 }
 
-// update an accounts balance
+// Send a transaction to increase an accounts balance.
 func (mod *GenBlockModule) Tx(addr, amt string) (string, error) {
 	account := mod.block.State().GetAccount(monkutil.UserHex2Bytes(addr))
 	account.Balance = monkutil.Big(amt)
@@ -231,36 +217,43 @@ func (mod *GenBlockModule) Tx(addr, amt string) (string, error) {
 	return addr, nil
 }
 
-// send a message to a contract
+// Send a message to a contract.
 func (mod *GenBlockModule) Msg(addr string, data []string) (string, error) {
 	monkdoug.SetValue(monkutil.UserHex2Bytes(addr), data, mod.fetchKeyPair(), mod.block)
 	return addr, nil
 }
 
+// Deploy a new contract. Note the addresses of core contracts must be stored in gendoug if
+// thelonious is expected to find them
 func (mod *GenBlockModule) Script(file, lang string) (string, error) {
-	fmt.Println("deploying...", len(file))
-	_, _, err := monkdoug.MakeApplyTx(file, []byte{4}, nil, mod.fetchKeyPair(), mod.block)
+	_, _, err := monkdoug.MakeApplyTx(file, nil, nil, mod.fetchKeyPair(), mod.block)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("script deploy err:", err)
 		return "", err
 	}
 	return "", nil
 }
 
+// There is nothing to subscribe to
 func (mod *GenBlockModule) Subscribe(name, event, target string) chan events.Event {
 	return nil
 }
 
+// There is nothing to unsubscribe from
 func (mod *GenBlockModule) UnSubscribe(name string) {
 }
 
+// Commit the current state to the database by syncing the genesis block's trie
 func (m *GenBlockModule) Commit() {
 	m.block.State().Trie.Sync()
 }
 
+// There is nothing to autocommit over
 func (m *GenBlockModule) AutoCommit(toggle bool) {
+	// TODO: sync after every change?
 }
 
+// There is nothing to autocommit over
 func (m *GenBlockModule) IsAutocommit() bool {
 	return false
 }
@@ -342,9 +335,6 @@ func (mod *GenBlockModule) fetchKeyPair() *monkcrypto.KeyPair {
 	return mod.keyManager.KeyPair()
 }
 
-func (mod *GenBlockModule) Stop() {
-}
-
 // compile LLL file into evm bytecode
 // returns hex
 func CompileLLL(filename string, literal bool) string {
@@ -362,46 +352,6 @@ func CompileLLL(filename string, literal bool) string {
 func homeDir() string {
 	usr, _ := user.Current()
 	return usr.HomeDir
-}
-
-// convert a big int from string to hex
-func BigNumStrToHex(s string) string {
-	bignum := monkutil.Big(s)
-	bignum_bytes := monkutil.BigToBytes(bignum, 16)
-	return monkutil.Bytes2Hex(bignum_bytes)
-}
-
-// takes a string, converts to bytes, returns hex
-func SHA3(tohash string) string {
-	h := monkcrypto.Sha3Bin([]byte(tohash))
-	return monkutil.Bytes2Hex(h)
-}
-
-// pack data into acceptable format for transaction
-// TODO: make sure this is ok ...
-// TODO: this is in two places, clean it up you putz
-func PackTxDataArgs(args ...string) string {
-	//fmt.Println("pack data:", args)
-	ret := *new([]byte)
-	for _, s := range args {
-		if s[:2] == "0x" {
-			t := s[2:]
-			if len(t)%2 == 1 {
-				t = "0" + t
-			}
-			x := monkutil.Hex2Bytes(t)
-			//fmt.Println(x)
-			l := len(x)
-			ret = append(ret, monkutil.LeftPadBytes(x, 32*((l+31)/32))...)
-		} else {
-			x := []byte(s)
-			l := len(x)
-			// TODO: just changed from right to left. yabadabadoooooo take care!
-			ret = append(ret, monkutil.LeftPadBytes(x, 32*((l+31)/32))...)
-		}
-	}
-	return "0x" + monkutil.Bytes2Hex(ret)
-	// return ret
 }
 
 // convert thelonious block to modules block
