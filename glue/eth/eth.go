@@ -392,6 +392,7 @@ func (eth *Eth) Msg(addr string, data []string) (string, error) {
 	return ethutil.Bytes2Hex(hash), nil
 }
 
+// TODO: implement CompileLLL
 func (eth *Eth) Script(file, lang string) (string, error) {
 	var script string
 	if lang == "lll-literal" {

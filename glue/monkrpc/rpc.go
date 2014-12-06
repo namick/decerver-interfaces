@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
-	_ "time"
+    "io/ioutil"
 
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
@@ -184,8 +184,20 @@ func (mod *MonkRpcModule) Msg(addr string, data []string) (string, error) {
 
 // Deploy a new contract.
 func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
-	// TODO: compile into script...
-	var scriptHex string
+    var scriptHex string
+	if lang == "lll-literal" {
+		scriptHex = CompileLLL(file, true)
+	}
+	if lang == "lll" {
+		scriptHex = CompileLLL(file, false) // if lll, compile and pass along
+	} else if lang == "mutan" {
+		s, _ := ioutil.ReadFile(file) // if mutan, pass along and pipe will compile
+		scriptHex = string(s)
+	} else if lang == "serpent" {
+
+	} else {
+		scriptHex = file
+	}
 
 	if mod.Config.Local {
 		args := mod.newLocalTx("", VALUE, GAS, GASPRICE, scriptHex)
@@ -293,17 +305,6 @@ func (mod *MonkRpcModule) fetchPriv() string {
 
 func (mod *MonkRpcModule) fetchKeyPair() *monkcrypto.KeyPair {
 	return mod.keyManager.KeyPair()
-}
-
-// compile LLL file into evm bytecode
-// returns hex
-func CompileLLL(filename string, literal bool) string {
-	code, err := monkutil.CompileLLL(filename, literal)
-	if err != nil {
-		fmt.Println("error compiling lll!", err)
-		return ""
-	}
-	return "0x" + monkutil.Bytes2Hex(code)
 }
 
 // some convenience functions

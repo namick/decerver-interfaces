@@ -153,3 +153,15 @@ func openLogFile(Datadir string, filename string) *os.File {
 	}
 	return file
 }
+
+// compile LLL file into evm bytecode
+// returns hex
+func CompileLLL(filename string, literal bool) string {
+	code, err := monkutil.CompileLLL(filename, literal)
+	if err != nil {
+		fmt.Println("error compiling lll!", err)
+		return ""
+	}
+	return monkutil.Bytes2Hex(code)
+}
+
