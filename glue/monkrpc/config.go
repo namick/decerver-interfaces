@@ -15,57 +15,57 @@ import (
 var ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
 
 type RpcConfig struct {
-    // Networking
-	RpcHost         string `json:"rpc_host"`
-	RpcPort         int    `json:"rpc_port"`
-    
-    // If true, key management is handled 
-    // by the server (presumably on a local machine)
-    // else, txs are signed by a key and rlp serialized
-    Local           bool   `json:"local"`
+	// Networking
+	RpcHost string `json:"rpc_host"`
+	RpcPort int    `json:"rpc_port"`
 
-    // Only relevant if Local is false
-	KeySession       string `json:"key_session"`
-	KeyStore         string `json:"key_store"`
-	KeyCursor        int    `json:"key_cursor"`
-	KeyFile          string `json:"key_file"`
+	// If true, key management is handled
+	// by the server (presumably on a local machine)
+	// else, txs are signed by a key and rlp serialized
+	Local bool `json:"local"`
 
-    // Paths
-	RootDir          string `json:"root_dir"`
-	DbName           string `json:"db_name"`
-	LLLPath          string `json:"lll_path"`
-	ContractPath     string `json:"contract_path"`
+	// Only relevant if Local is false
+	KeySession string `json:"key_session"`
+	KeyStore   string `json:"key_store"`
+	KeyCursor  int    `json:"key_cursor"`
+	KeyFile    string `json:"key_file"`
 
-    // Logs
-	LogFile          string `json:"log_file"`
-	DebugFile        string `json:"debug_file"`
-	LogLevel         int    `json:"log_level"`
+	// Paths
+	RootDir      string `json:"root_dir"`
+	DbName       string `json:"db_name"`
+	LLLPath      string `json:"lll_path"`
+	ContractPath string `json:"contract_path"`
+
+	// Logs
+	LogFile   string `json:"log_file"`
+	DebugFile string `json:"debug_file"`
+	LogLevel  int    `json:"log_level"`
 }
 
 // set default config object
 var DefaultConfig = &RpcConfig{
-    // Network
-    RpcHost:    "",
-    RpcPort:    30304,
+	// Network
+	RpcHost: "",
+	RpcPort: 30304,
 
-    Local:  true,
+	Local: true,
 
-    // Local Node
+	// Local Node
 	KeySession: "generous",
-	KeyStore:         "file",
-	KeyCursor:        0,
-	KeyFile:          path.Join(ErisLtd, "thelonious", "monk", "keys.txt"),
+	KeyStore:   "file",
+	KeyCursor:  0,
+	KeyFile:    path.Join(ErisLtd, "thelonious", "monk", "keys.txt"),
 
-    // Paths
-	RootDir:    path.Join(usr.HomeDir, ".monkchain2"),
-	DbName:     "database",
-	LLLPath: "NETCALL", //path.Join(homeDir(), "cpp-ethereum/build/lllc/lllc"),
-	ContractPath:     path.Join(ErisLtd, "eris-std-lib"),
+	// Paths
+	RootDir:      path.Join(usr.HomeDir, ".monkchain2"),
+	DbName:       "database",
+	LLLPath:      "NETCALL", //path.Join(homeDir(), "cpp-ethereum/build/lllc/lllc"),
+	ContractPath: path.Join(ErisLtd, "eris-std-lib"),
 
-    // Log
-	LogFile:    "",
-    DebugFile:  "",
-	LogLevel:         5,
+	// Log
+	LogFile:   "",
+	DebugFile: "",
+	LogLevel:  5,
 }
 
 // Marshal the current configuration to file in pretty json.
@@ -149,15 +149,15 @@ func (mod *MonkRpcModule) rConfig() {
 			Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
 		}
 	}
-	// a global monkutil.Config object is used for shared global access to the db. 
+	// a global monkutil.Config object is used for shared global access to the db.
 	// this also uses rakyl/globalconf, but we mostly ignore all that
 	if monkutil.Config == nil {
-	    monkutil.Config = &monkutil.ConfigManager{ExecPath: cfg.RootDir, Debug: true, Paranoia: true}
+		monkutil.Config = &monkutil.ConfigManager{ExecPath: cfg.RootDir, Debug: true, Paranoia: true}
 	}
 
-    if monkutil.Config.Db == nil{
+	if monkutil.Config.Db == nil {
 		monkutil.Config.Db = NewDatabase(mod.Config.DbName)
-    }
+	}
 
 	// TODO: enhance this with more pkg level control
 	InitLogging(cfg.RootDir, cfg.LogFile, cfg.LogLevel, cfg.DebugFile)

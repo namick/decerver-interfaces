@@ -4,9 +4,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/rpc"
-    "os"
+	"net/rpc/jsonrpc"
+	"os"
 	"os/user"
 	"strconv"
+	_ "time"
 
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
@@ -72,11 +74,12 @@ func (mod *MonkRpcModule) Init() error {
 
 // This function does nothing. There are no processes to start
 func (mod *MonkRpcModule) Start() error {
-	client, err := rpc.DialHTTP("tcp", mod.Config.RpcHost+":"+strconv.Itoa(mod.Config.RpcPort))
-	client, err = rpc.DialHTTP("tcp", ":9093")
+	rpcAddr := mod.Config.RpcHost + ":" + strconv.Itoa(mod.Config.RpcPort)
+	logger.Infoln(rpcAddr)
+	client, err := jsonrpc.Dial("tcp", rpcAddr)
 	if err != nil {
-		logger.Infoln(err)
-        os.Exit(0)
+		fmt.Println("dial http failed: ", err)
+		os.Exit(0)
 	}
 	mod.client = client
 
@@ -158,12 +161,12 @@ func (mod *MonkRpcModule) IsScript(target string) bool {
 // Send a transaction to increase an accounts balance.
 func (mod *MonkRpcModule) Tx(addr, amt string) (string, error) {
 	if mod.Config.Local {
-		args := newLocalTx(addr, amt, GAS, GASPRICE, "")
+		args := mod.newLocalTx(addr, amt, GAS, GASPRICE, "")
 		return mod.rpcLocalTxCall(args)
 	}
 	// send a signed and serialized tx to a remote server
-	key := mod.keyManager.KeyPair().PrivateKey
-	args := newRemoteTx(key, addr, amt, GAS, GASPRICE, "")
+	keys := mod.keyManager.KeyPair()
+	args := mod.newRemoteTx(keys, addr, amt, GAS, GASPRICE, "")
 	return mod.rpcRemoteTxCall(args)
 }
 
@@ -171,11 +174,11 @@ func (mod *MonkRpcModule) Tx(addr, amt string) (string, error) {
 func (mod *MonkRpcModule) Msg(addr string, data []string) (string, error) {
 	dataArgs := monkutil.Bytes2Hex(monkutil.PackTxDataArgs(data...))
 	if mod.Config.Local {
-		args := newLocalTx(addr, VALUE, GAS, GASPRICE, dataArgs)
+		args := mod.newLocalTx(addr, VALUE, GAS, GASPRICE, dataArgs)
 		return mod.rpcLocalTxCall(args)
 	}
-	key := mod.keyManager.KeyPair().PrivateKey
-	args := newRemoteTx(key, addr, VALUE, GAS, GASPRICE, dataArgs)
+	keys := mod.keyManager.KeyPair()
+	args := mod.newRemoteTx(keys, addr, VALUE, GAS, GASPRICE, dataArgs)
 	return mod.rpcRemoteTxCall(args)
 }
 
@@ -185,11 +188,11 @@ func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
 	var scriptHex string
 
 	if mod.Config.Local {
-		args := newLocalTx("", VALUE, GAS, GASPRICE, scriptHex)
+		args := mod.newLocalTx("", VALUE, GAS, GASPRICE, scriptHex)
 		return mod.rpcLocalTxCall(args)
 	}
-	key := mod.keyManager.KeyPair().PrivateKey
-	args := newRemoteTx(key, "", VALUE, GAS, GASPRICE, scriptHex)
+	keys := mod.keyManager.KeyPair()
+	args := mod.newRemoteTx(keys, "", VALUE, GAS, GASPRICE, scriptHex)
 	return mod.rpcRemoteTxCall(args)
 }
 
