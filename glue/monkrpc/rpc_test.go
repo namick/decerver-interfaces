@@ -17,10 +17,10 @@ func setConfig() {
 	Monk.Config.Mining = false
 }
 
-func ginit() {
+func init() {
 	// start a monk instance serving rpc
 	Monk = monk.NewMonk(nil)
-	Monk.GenesisConfig = &monkdoug.DefaultGenesis
+	Monk.GenesisConfig = monkdoug.DefaultGenesis
 	setConfig()
 	Monk.Init()
 	Monk.Start()

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/eris-ltd/decerver-interfaces/glue/utils"
 	"github.com/eris-ltd/thelonious/monkutil"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -146,7 +146,7 @@ func (mod *MonkRpcModule) rConfig() {
 		os.Mkdir(cfg.RootDir, 0777)
 		_, err := os.Stat(path.Join(cfg.RootDir, cfg.KeySession) + ".prv")
 		if err != nil {
-			Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
+			utils.Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
 		}
 	}
 	// a global monkutil.Config object is used for shared global access to the db.
@@ -156,32 +156,9 @@ func (mod *MonkRpcModule) rConfig() {
 	}
 
 	if monkutil.Config.Db == nil {
-		monkutil.Config.Db = NewDatabase(mod.Config.DbName)
+		monkutil.Config.Db = utils.NewDatabase(mod.Config.DbName)
 	}
 
 	// TODO: enhance this with more pkg level control
-	InitLogging(cfg.RootDir, cfg.LogFile, cfg.LogLevel, cfg.DebugFile)
-}
-
-// Is there really no way to copy a file in the std lib?
-func Copy(src, dst string) {
-	r, err := os.Open(src)
-	if err != nil {
-		logger.Errorln(err)
-		return
-	}
-	defer r.Close()
-
-	w, err := os.Create(dst)
-	if err != nil {
-		logger.Errorln(err)
-		return
-	}
-	defer w.Close()
-
-	_, err = io.Copy(w, r)
-	if err != nil {
-		logger.Errorln(err)
-		return
-	}
+	utils.InitLogging(cfg.RootDir, cfg.LogFile, cfg.LogLevel, cfg.DebugFile)
 }

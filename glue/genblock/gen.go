@@ -46,6 +46,10 @@ type GenBlockModule struct {
 func NewGenBlockModule(block *monkchain.Block) *GenBlockModule {
 	g := new(GenBlockModule)
 	g.Config = DefaultConfig
+	// TODO: if block is nil, get a good one
+	if block == nil {
+		block = monkchain.NewBlockFromBytes(monkutil.Encode(monkchain.Genesis))
+	}
 	g.block = block
 	return g
 }

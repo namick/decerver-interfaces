@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/eris-ltd/decerver-interfaces/glue/utils"
 	"github.com/eris-ltd/thelonious/monkutil"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -69,8 +69,6 @@ func (mod *GenBlockModule) ReadConfig(config_file string) {
 	err = json.Unmarshal(b, &config)
 	if err != nil {
 		fmt.Println("error unmarshalling config from file:", err)
-		fmt.Println("resorting to defaults")
-		//mod.monk.config = DefaultConfig
 		return
 	}
 	*(mod.Config) = config
@@ -117,38 +115,10 @@ func (mod *GenBlockModule) gConfig() {
 
 	// check on data dir
 	// create keys
-	_, err := os.Stat(cfg.RootDir)
+	utils.InitDataDir(cfg.RootDir)
+	_, err := os.Stat(path.Join(cfg.RootDir, cfg.KeySession) + ".prv")
 	if err != nil {
-		os.Mkdir(cfg.RootDir, 0777)
-		_, err := os.Stat(path.Join(cfg.RootDir, cfg.KeySession) + ".prv")
-		if err != nil {
-			Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
-		}
+		utils.Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
 	}
-}
-
-// common golang, really?
-func Copy(src, dst string) {
-	r, err := os.Open(src)
-	if err != nil {
-		fmt.Println(src, err)
-		logger.Errorln(err)
-		return
-	}
-	defer r.Close()
-
-	w, err := os.Create(dst)
-	if err != nil {
-		fmt.Println(err)
-		logger.Errorln(err)
-		return
-	}
-	defer w.Close()
-
-	_, err = io.Copy(w, r)
-	if err != nil {
-		fmt.Println(err)
-		logger.Errorln(err)
-		return
-	}
+	// TODO: logging ... ?
 }
