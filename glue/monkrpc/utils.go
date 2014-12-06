@@ -164,4 +164,3 @@ func CompileLLL(filename string, literal bool) string {
 	}
 	return monkutil.Bytes2Hex(code)
 }
-

@@ -2,26 +2,26 @@ package btcdglue
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
-    "fmt"
 
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 
-    rpc "github.com/conformal/btcrpcclient"
+	rpc "github.com/conformal/btcrpcclient"
 	"github.com/conformal/btcutil"
 	"github.com/conformal/btcwire"
 )
 
 type BTC struct {
-	btcdConfig *rpc.ConnConfig
-    walletConfig *rpc.ConnConfig
+	btcdConfig   *rpc.ConnConfig
+	walletConfig *rpc.ConnConfig
 	// btcrpcclient does not allow for new subscriptions
 	//   once the client is already started
 	// so we make a new client (websocket connection) for each subscription
@@ -31,28 +31,28 @@ type BTC struct {
 	notifies map[string]*rpc.Client
 	chans    map[string]chan events.Event
 
-	btcproc *os.Process
-    walletproc *os.Process
+	btcproc    *os.Process
+	walletproc *os.Process
 }
 
 func (b *BTC) Register(fileIO core.FileIO, runtime core.Runtime, eReg events.EventRegistry) error {
-    return nil
+	return nil
 }
 
-func NewBtcd() *BTC{
-    return &BTC{}
+func NewBtcd() *BTC {
+	return &BTC{}
 }
 
 func (b *BTC) Init() error {
-    // hack to get rpc.cert
-    cmd := exec.Command("btcd", "--nodnsseed", "-u", "rpcuser", "-P", "rpcpass")
-    go cmd.Run()
-    time.Sleep(2*time.Second)
-    cmd.Process.Kill()
-    cmd = exec.Command("btcwallet", "-u", "rpcuser", "-P", "rpcpass")
-    go cmd.Run()
-    time.Sleep(2*time.Second)
-    cmd.Process.Kill()
+	// hack to get rpc.cert
+	cmd := exec.Command("btcd", "--nodnsseed", "-u", "rpcuser", "-P", "rpcpass")
+	go cmd.Run()
+	time.Sleep(2 * time.Second)
+	cmd.Process.Kill()
+	cmd = exec.Command("btcwallet", "-u", "rpcuser", "-P", "rpcpass")
+	go cmd.Run()
+	time.Sleep(2 * time.Second)
+	cmd.Process.Kill()
 
 	// setup config
 	btcdHomeDir := btcutil.AppDataDir("btcd", false)
@@ -81,7 +81,7 @@ func (b *BTC) Init() error {
 		Pass:         "rpcpass",
 		Certificates: certs,
 	}
-    b.walletConfig = connCfg
+	b.walletConfig = connCfg
 
 	b.chans = make(map[string]chan events.Event)
 	b.notifies = make(map[string]*rpc.Client)
@@ -89,36 +89,34 @@ func (b *BTC) Init() error {
 	return nil
 }
 
-func startProc(cmd *exec.Cmd, config *rpc.ConnConfig) error{
-    cmd.Stdout = os.Stdout
-    go cmd.Run()
-    
-    tries := 5
-    timeout := time.Second
-    var client *rpc.Client
-    var err error = fmt.Errorf("notnill")
-    i := 0
-    for ; i < tries && err != nil; i++ {
-        time.Sleep(timeout)
-        client, err = rpc.New(config, nil)
-    }
-    if i == tries{
-        log.Fatal(err)
-    }
-    client.Shutdown()
-    return nil
+func startProc(cmd *exec.Cmd, config *rpc.ConnConfig) error {
+	cmd.Stdout = os.Stdout
+	go cmd.Run()
+
+	tries := 5
+	timeout := time.Second
+	var client *rpc.Client
+	var err error = fmt.Errorf("notnill")
+	i := 0
+	for ; i < tries && err != nil; i++ {
+		time.Sleep(timeout)
+		client, err = rpc.New(config, nil)
+	}
+	if i == tries {
+		log.Fatal(err)
+	}
+	client.Shutdown()
+	return nil
 }
 
-
-
 func (b *BTC) Start() error {
-	// start up btcd 
+	// start up btcd
 	cmd := exec.Command("btcd", "--simnet", "--nodnsseed", "-u", "rpcuser", "-P", "rpcpass")
-    startProc(cmd, b.btcdConfig)
+	startProc(cmd, b.btcdConfig)
 	b.btcproc = cmd.Process
-    // start the wallet server
+	// start the wallet server
 	cmd = exec.Command("btcwallet", "--simnet", "-u", "rpcuser", "-P", "rpcpass")
-    startProc(cmd, b.walletConfig)
+	startProc(cmd, b.walletConfig)
 	b.walletproc = cmd.Process
 
 	// need to do some key stuff
@@ -129,7 +127,7 @@ func (b *BTC) Start() error {
 	b.client = client
 
 	// subscribe to new blocks
-//	b.Subscribe("newBlock", "newBlock", "")
+	//	b.Subscribe("newBlock", "newBlock", "")
 
 	return nil
 }
@@ -141,7 +139,7 @@ func (b *BTC) Shutdown() error {
 	}
 	//TODO: close channels
 
-    // shutdown wallet and btcd
+	// shutdown wallet and btcd
 	b.walletproc.Signal(os.Interrupt)
 	b.walletproc.Wait()
 	b.btcproc.Signal(os.Interrupt)
@@ -186,10 +184,10 @@ func (b *BTC) Subscribe(name string, event string, target string) chan events.Ev
 		}
 	}
 	client, err := rpc.New(b.walletConfig, &handlers)
-    if err != nil{
-        log.Println("cmah!!!", err)
-        return nil
-    }
+	if err != nil {
+		log.Println("cmah!!!", err)
+		return nil
+	}
 	switch name {
 	case "newBlock":
 		client.NotifyBlocks()
@@ -230,12 +228,12 @@ func (b *BTC) Get(cmd string, params ...string) (ret interface{}, err error) {
 	case "npeers":
 		//return (int64, error)
 		ret, err = b.client.GetConnectionCount()
-    case "accounts":
-        ret, err = b.client.ListAccounts()
-    case "newwallet":
-        err = b.client.CreateEncryptedWallet(params[0])
-    case "address":
-        ret, err = b.client.GetAccountAddress("")
+	case "accounts":
+		ret, err = b.client.ListAccounts()
+	case "newwallet":
+		err = b.client.CreateEncryptedWallet(params[0])
+	case "address":
+		ret, err = b.client.GetAccountAddress("")
 	}
 	return
 }

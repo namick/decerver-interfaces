@@ -22,8 +22,8 @@ import (
 	"github.com/ethereum/go-ethereum/logger"
 	"github.com/ethereum/go-ethereum/xeth"
 	//"github.com/ethereum/go-ethereum/react"
-    "github.com/ethereum/go-ethereum/state"
 	"github.com/ethereum/go-ethereum/ethutil"
+	"github.com/ethereum/go-ethereum/state"
 )
 
 var (
@@ -36,8 +36,8 @@ var ethlogger *logger.Logger = logger.NewLogger("EthGlue")
 
 // implements decerver-interfaces Module
 type EthModule struct {
-	eth          *Eth
-	Config        *ChainConfig
+	eth    *Eth
+	Config *ChainConfig
 }
 
 // implements decerver-interfaces Blockchain
@@ -45,12 +45,12 @@ type EthModule struct {
 // as such, it does not have "administrative" methods
 type Eth struct {
 	config     *ChainConfig
-	ethereum *eth.Ethereum
+	ethereum   *eth.Ethereum
 	pipe       *xeth.XEth
 	keyManager *crypto.KeyManager
 	//reactor    *react.ReactorEngine
-	started    bool
-	chans      map[string]chan events.Event
+	started bool
+	chans   map[string]chan events.Event
 	//reactchans map[string]chan ethreact.Event
 }
 
@@ -80,7 +80,7 @@ func NewEth(th *eth.Ethereum) *EthModule {
 }
 
 // register the module with the decerver javascript vm
-func (mod *EthModule) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error{
+func (mod *EthModule) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
 	return nil
 }
 
@@ -422,63 +422,63 @@ func (eth *Eth) Script(file, lang string) (string, error) {
 
 // returns a chanel that will fire when address is updated
 func (eth *Eth) Subscribe(name, event, target string) chan events.Event {
-    /*
-	th_ch := make(chan ethreact.Event, 1)
-	if target != "" {
-		addr := string(ethutil.Hex2Bytes(target))
-		eth.reactor.Subscribe("object:"+addr, th_ch)
-	} else {
-		eth.reactor.Subscribe(event, th_ch)
-	}
-
-	ch := make(chan events.Event)
-	eth.chans[name] = ch
-	eth.reactchans[name] = th_ch
-
-	// fire up a goroutine and broadcast module specific chan on our main chan
-	go func() {
-		for {
-			eve, more := <-th_ch
-			if !more {
-				break
-			}
-			returnEvent := events.Event{
-				Event:     event,
-				Target:    target,
-				Source:    "eth",
-				TimeStamp: time.Now(),
-			}
-			// cast resource to appropriate type
-			resource := eve.Resource
-			if block, ok := resource.(*chain.Block); ok {
-				returnEvent.Resource = convertBlock(block)
-			} else if tx, ok := resource.(chain.Transaction); ok {
-				returnEvent.Resource = convertTx(&tx)
-			} else if txFail, ok := resource.(chain.TxFail); ok {
-				tx := convertTx(txFail.Tx)
-				tx.Error = txFail.Err.Error()
-				returnEvent.Resource = tx
-			} else {
-				ethlogger.Errorln("Invalid event resource type", resource)
-			}
-			ch <- returnEvent
+	/*
+		th_ch := make(chan ethreact.Event, 1)
+		if target != "" {
+			addr := string(ethutil.Hex2Bytes(target))
+			eth.reactor.Subscribe("object:"+addr, th_ch)
+		} else {
+			eth.reactor.Subscribe(event, th_ch)
 		}
-	}()
-	return ch
-    */
-    return nil
+
+		ch := make(chan events.Event)
+		eth.chans[name] = ch
+		eth.reactchans[name] = th_ch
+
+		// fire up a goroutine and broadcast module specific chan on our main chan
+		go func() {
+			for {
+				eve, more := <-th_ch
+				if !more {
+					break
+				}
+				returnEvent := events.Event{
+					Event:     event,
+					Target:    target,
+					Source:    "eth",
+					TimeStamp: time.Now(),
+				}
+				// cast resource to appropriate type
+				resource := eve.Resource
+				if block, ok := resource.(*chain.Block); ok {
+					returnEvent.Resource = convertBlock(block)
+				} else if tx, ok := resource.(chain.Transaction); ok {
+					returnEvent.Resource = convertTx(&tx)
+				} else if txFail, ok := resource.(chain.TxFail); ok {
+					tx := convertTx(txFail.Tx)
+					tx.Error = txFail.Err.Error()
+					returnEvent.Resource = tx
+				} else {
+					ethlogger.Errorln("Invalid event resource type", resource)
+				}
+				ch <- returnEvent
+			}
+		}()
+		return ch
+	*/
+	return nil
 }
 
 func (eth *Eth) UnSubscribe(name string) {
-    /*
-	if c, ok := eth.reactchans[name]; ok {
-		close(c)
-		delete(eth.reactchans, name)
-	}
-	if c, ok := eth.chans[name]; ok {
-		close(c)
-		delete(eth.chans, name)
-	}*/
+	/*
+		if c, ok := eth.reactchans[name]; ok {
+			close(c)
+			delete(eth.reactchans, name)
+		}
+		if c, ok := eth.chans[name]; ok {
+			close(c)
+			delete(eth.chans, name)
+		}*/
 }
 
 // Mine a block
@@ -657,12 +657,12 @@ func (eth *Eth) Stop() {
 // compile LLL file into evm bytecode
 // returns hex
 func CompileLLL(filename string, literal bool) string {
-    /*
-	code, err := ethutil.CompileLLL(filename, literal)
-	if err != nil {
-		fmt.Println("error compiling lll!", err)
-		return ""
-	}*/
+	/*
+		code, err := ethutil.CompileLLL(filename, literal)
+		if err != nil {
+			fmt.Println("error compiling lll!", err)
+			return ""
+		}*/
 	return "0x" //+ ethutil.Bytes2Hex(code)
 }
 

@@ -1,47 +1,47 @@
 package ipfs
 
 import (
-    "io"
-    "bytes"
-    "errors"
-    "path"
-    "os"
-    fp "path/filepath"
+	"bytes"
+	"errors"
+	"io"
+	"os"
+	"path"
+	fp "path/filepath"
 
-    uio "github.com/jbenet/go-ipfs/unixfs/io"
-    core "github.com/jbenet/go-ipfs/core"
-    ccmds "github.com/jbenet/go-ipfs/core/commands"
-    cmds "github.com/jbenet/go-ipfs/commands"
-    dag "github.com/jbenet/go-ipfs/merkledag"
-    pinning "github.com/jbenet/go-ipfs/pin"
-    importer "github.com/jbenet/go-ipfs/importer"
-    ft "github.com/jbenet/go-ipfs/unixfs"
+	cmds "github.com/jbenet/go-ipfs/commands"
+	core "github.com/jbenet/go-ipfs/core"
+	ccmds "github.com/jbenet/go-ipfs/core/commands"
+	importer "github.com/jbenet/go-ipfs/importer"
+	dag "github.com/jbenet/go-ipfs/merkledag"
+	pinning "github.com/jbenet/go-ipfs/pin"
+	ft "github.com/jbenet/go-ipfs/unixfs"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
 
-    "github.com/jbenet/go-ipfs/importer/chunk"
+	"github.com/jbenet/go-ipfs/importer/chunk"
 )
 
 // Much of this fucntionality used to be exported from go-ipfs
-//  but now its private, so we duplicate. 
+//  but now its private, so we duplicate.
 //  Perhaps it is better that way, perhaps not
 
-func cat(node *core.IpfsNode, paths []string) ([]byte, error) {                
-    readers := make([]io.Reader, 0, len(paths))                                     
-    for _, path := range paths {
-        dagnode, err := node.Resolver.ResolvePath(path)                             
-        if err != nil { 
-            return nil, err                                                         
-        }
-        read, err := uio.NewDagReader(dagnode, node.DAG)                            
-        if err != nil { 
-            return nil, err                                                         
-        }
-        readers = append(readers, read)                                             
-    }
-    
-    b := new(bytes.Buffer)
-    reader := io.MultiReader(readers...)
-    io.Copy(b, reader)
-    return b.Bytes(), nil
+func cat(node *core.IpfsNode, paths []string) ([]byte, error) {
+	readers := make([]io.Reader, 0, len(paths))
+	for _, path := range paths {
+		dagnode, err := node.Resolver.ResolvePath(path)
+		if err != nil {
+			return nil, err
+		}
+		read, err := uio.NewDagReader(dagnode, node.DAG)
+		if err != nil {
+			return nil, err
+		}
+		readers = append(readers, read)
+	}
+
+	b := new(bytes.Buffer)
+	reader := io.MultiReader(readers...)
+	io.Copy(b, reader)
+	return b.Bytes(), nil
 }
 
 func add(n *core.IpfsNode, readers []io.Reader) ([]*dag.Node, error) {
@@ -106,7 +106,7 @@ func addDir(n *core.IpfsNode, dir cmds.File, added *ccmds.AddOutput) (*dag.Node,
 		}
 		if file == nil {
 			break
-	}
+		}
 
 		node, err := addFile(n, file, added)
 		if err != nil {
@@ -147,25 +147,25 @@ func addDagnode(output *ccmds.AddOutput, name string, dn *dag.Node) error {
 }
 
 func getOutput(dagnode *dag.Node) (*ccmds.Object, error) {
-    key, err := dagnode.Key()
-    if err != nil {
-        return nil, err
-    }
+	key, err := dagnode.Key()
+	if err != nil {
+		return nil, err
+	}
 
-    output := &ccmds.Object{
-        Hash:  key.Pretty(),
-        Links: make([]ccmds.Link, len(dagnode.Links)),
-    }
+	output := &ccmds.Object{
+		Hash:  key.Pretty(),
+		Links: make([]ccmds.Link, len(dagnode.Links)),
+	}
 
-    for i, link := range dagnode.Links {
-        output.Links[i] = ccmds.Link{
-            Name: link.Name,
-            Hash: link.Hash.B58String(),
-            Size: link.Size,
-        }
-    }
+	for i, link := range dagnode.Links {
+		output.Links[i] = ccmds.Link{
+			Name: link.Name,
+			Hash: link.Hash.B58String(),
+			Size: link.Size,
+		}
+	}
 
-    return output, nil
+	return output, nil
 }
 
 // recursively get file or directory contents as a cmds.File

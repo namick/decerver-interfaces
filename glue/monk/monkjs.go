@@ -1,11 +1,11 @@
 package monkjs
 
 import (
+	"fmt"
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 	"github.com/eris-ltd/thelonious/monk"
-	"fmt"
 )
 
 // implements decerver-interfaces Module
@@ -76,7 +76,7 @@ func (mjs *MonkJs) Account(target string) modules.JsObject {
 	return modules.JsReturnVal(modules.ToMap(mjs.mm.Account(target)), nil)
 }
 
-func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject  {
+func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject {
 	return modules.JsReturnVal(mjs.mm.StorageAt(target, storage), nil)
 }
 
@@ -109,11 +109,11 @@ func (mjs *MonkJs) Tx(addr, amt string) modules.JsObject {
 }
 
 func (mjs *MonkJs) Msg(addr string, data []interface{}) modules.JsObject {
-	indata := make([]string,0)
-	for _ , d := range data {
+	indata := make([]string, 0)
+	for _, d := range data {
 		str, ok := d.(string)
 		if !ok {
-			return modules.JsReturnValErr(fmt.Errorf("Msg indata is not an array of strings"))		
+			return modules.JsReturnValErr(fmt.Errorf("Msg indata is not an array of strings"))
 		}
 		indata = append(indata, str)
 	}
@@ -142,12 +142,12 @@ func (mjs *MonkJs) Script(file, lang string) modules.JsObject {
 
 func (mjs *MonkJs) Commit() modules.JsObject {
 	mjs.mm.Commit()
-	return modules.JsReturnVal(nil,nil)
+	return modules.JsReturnVal(nil, nil)
 }
 
 func (mjs *MonkJs) AutoCommit(toggle bool) modules.JsObject {
 	mjs.mm.AutoCommit(toggle)
-	return modules.JsReturnVal(nil,nil)
+	return modules.JsReturnVal(nil, nil)
 }
 
 func (mjs *MonkJs) IsAutocommit() modules.JsObject {
@@ -166,13 +166,13 @@ func (mjs *MonkJs) Addresses() modules.JsObject {
 	count := mjs.mm.AddressCount()
 	addresses := make(modules.JsObject)
 	array := make([]string, count)
-	
+
 	for i := 0; i < count; i++ {
 		addr, _ := mjs.mm.Address(i)
 		array[i] = addr
 	}
 	addresses["Addresses"] = array
-	return modules.JsReturnVal(addresses,nil)
+	return modules.JsReturnVal(addresses, nil)
 }
 
 func (mjs *MonkJs) SetAddress(addr string) modules.JsObject {
@@ -181,14 +181,14 @@ func (mjs *MonkJs) SetAddress(addr string) modules.JsObject {
 		return modules.JsReturnValErr(err)
 	} else {
 		// No error means success.
-		return modules.JsReturnValNoErr(nil)	
+		return modules.JsReturnValNoErr(nil)
 	}
 }
 
 // TODO Not used atm. Think about this.
 func (mjs *MonkJs) SetAddressN(n int) modules.JsObject {
 	mjs.mm.SetAddressN(n)
-	return modules.JsReturnValNoErr(nil);
+	return modules.JsReturnValNoErr(nil)
 }
 
 func (mjs *MonkJs) NewAddress(set bool) modules.JsObject {

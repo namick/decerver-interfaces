@@ -15,19 +15,19 @@ import (
 var ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
 
 type ChainConfig struct {
-	ConfigFile       string `json:"config_file"`
-	RootDir          string `json:"root_dir"`
-	LogFile          string `json:"log_file"`
-	DbName           string `json:"db_name"`
-	LLLPath          string `json:"lll_path"`
-	ContractPath     string `json:"contract_path"`
-	KeySession       string `json:"key_session"`
-	KeyStore         string `json:"key_store"`
-	KeyCursor        int    `json:"key_cursor"`
-	KeyFile          string `json:"key_file"`
-	LogLevel         int    `json:"log_level"`
-    Unique           bool   `json:"unique"`
-    PrivateKey       string `json:"private_key"`
+	ConfigFile   string `json:"config_file"`
+	RootDir      string `json:"root_dir"`
+	LogFile      string `json:"log_file"`
+	DbName       string `json:"db_name"`
+	LLLPath      string `json:"lll_path"`
+	ContractPath string `json:"contract_path"`
+	KeySession   string `json:"key_session"`
+	KeyStore     string `json:"key_store"`
+	KeyCursor    int    `json:"key_cursor"`
+	KeyFile      string `json:"key_file"`
+	LogLevel     int    `json:"log_level"`
+	Unique       bool   `json:"unique"`
+	PrivateKey   string `json:"private_key"`
 }
 
 // set default config object
@@ -38,12 +38,12 @@ var DefaultConfig = &ChainConfig{
 	KeySession: "generous",
 	LogFile:    "",
 	//LLLPath: path.Join(homeDir(), "cpp-ethereum/build/lllc/lllc"),
-	LLLPath:          "NETCALL",
-	ContractPath:     path.Join(ErisLtd, "eris-std-lib"),
-	KeyStore:         "file",
-	KeyCursor:        0,
-	KeyFile:          path.Join(ErisLtd, "thelonious", "monk", "keys.txt"),
-	LogLevel:         5,
+	LLLPath:      "NETCALL",
+	ContractPath: path.Join(ErisLtd, "eris-std-lib"),
+	KeyStore:     "file",
+	KeyCursor:    0,
+	KeyFile:      path.Join(ErisLtd, "thelonious", "monk", "keys.txt"),
+	LogLevel:     5,
 }
 
 // can these methods be functions in decerver that take the modules as argument?

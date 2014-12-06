@@ -3,12 +3,12 @@ package monkrpc
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"os"
 	"os/user"
 	"strconv"
-    "io/ioutil"
 
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
@@ -184,7 +184,7 @@ func (mod *MonkRpcModule) Msg(addr string, data []string) (string, error) {
 
 // Deploy a new contract.
 func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
-    var scriptHex string
+	var scriptHex string
 	if lang == "lll-literal" {
 		scriptHex = CompileLLL(file, true)
 	}

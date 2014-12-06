@@ -24,10 +24,10 @@ func start() *BlkChainInfo {
 	b := NewBlkChainInfo()
 	_ = b.Init()
 
-	b.BciApi.GUID           = guid
-	b.BciApi.Password       = passwd1
+	b.BciApi.GUID = guid
+	b.BciApi.Password = passwd1
 	b.BciApi.SecondPassword = passwd2
-	b.BciApi.APICode        = apicode
+	b.BciApi.APICode = apicode
 
 	return b
 }
@@ -62,7 +62,6 @@ func testBlockEquality(block *modules.Block) error {
 func testTxEquality(tx *modules.Transaction) error {
 	return nil
 }
-
 
 func TestTx(t *testing.T) {
 	hash, err := BlockChainInfo.Tx(acct3, "500")

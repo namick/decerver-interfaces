@@ -61,20 +61,20 @@ func NewIpfs() *IpfsModule {
 
 func (mod *IpfsModule) Init() error {
 	// config is RootDir/config
-	
+
 	filename, err := config.Filename(mod.Config.RootDir)
 	if err != nil {
 		return err
 	}
-	
+
 	// load the config file
 	// if non-existant, initialize ipfs
 	// on the machine
 	mod.ipfs.cfg, err = config.Load(filename)
-	
+
 	if err != nil {
 		if strings.Contains(err.Error(), "init") {
-			c := exec.Command("ipfs", "init", "-d="+ mod.Config.RootDir)
+			c := exec.Command("ipfs", "init", "-d="+mod.Config.RootDir)
 			c.Stdout = os.Stdout
 			err := c.Run()
 			if err != nil {
@@ -86,9 +86,9 @@ func (mod *IpfsModule) Init() error {
 		}
 		return mod.Init()
 	}
-	
-	u.SetLogLevel("*", "critical")//logLevels[mod.Config.LogLevel])
-	
+
+	u.SetLogLevel("*", "critical") //logLevels[mod.Config.LogLevel])
+
 	/*if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
 		return nil, err
 	}*/
@@ -183,13 +183,13 @@ func (mod *IpfsModule) Addresses() modules.JsObject {
 	count := mod.ipfs.AddressCount()
 	addresses := make(modules.JsObject)
 	array := make([]string, count)
-	
+
 	for i := 0; i < count; i++ {
 		addr, _ := mod.ipfs.Address(i)
 		array[i] = addr
 	}
 	addresses["Addresses"] = array
-	return modules.JsReturnVal(addresses,nil)
+	return modules.JsReturnVal(addresses, nil)
 }
 
 func (mod *IpfsModule) Address(n int) modules.JsObject {
@@ -202,7 +202,7 @@ func (mod *IpfsModule) SetAddress(addr string) modules.JsObject {
 		return modules.JsReturnValErr(err)
 	} else {
 		// No error means success.
-		return modules.JsReturnValNoErr(nil)	
+		return modules.JsReturnValNoErr(nil)
 	}
 }
 
@@ -330,7 +330,7 @@ func (ipfs *Ipfs) GetTree(hash string, depth int) (modules.JsObject, error) {
 	if err2 != nil {
 		return nil, err2
 	}
-	tree := getTreeNode("",hex.EncodeToString(mhash))
+	tree := getTreeNode("", hex.EncodeToString(mhash))
 	err3 := grabRefs(ipfs.node, nd, tree)
 	return tree, err3
 }
@@ -487,7 +487,7 @@ func hexPath2B58(p string) (string, error) {
 
 func getTreeNode(name, hash string) modules.JsObject {
 	obj := make(modules.JsObject)
-	obj["Nodes"] = make([]modules.JsObject,0)
+	obj["Nodes"] = make([]modules.JsObject, 0)
 	obj["Name"] = name
 	obj["Hash"] = hash
 	return obj
