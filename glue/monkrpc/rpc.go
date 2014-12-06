@@ -3,8 +3,8 @@ package monkrpc
 import (
 	"encoding/hex"
 	"fmt"
-	"log"
 	"net/rpc"
+    "os"
 	"os/user"
 	"strconv"
 
@@ -34,13 +34,13 @@ var logger *monklog.Logger = monklog.NewLogger("MonkRpc")
 
 // Implements decerver-interfaces Blockchain
 type MonkRpcModule struct {
-	Config     *ChainConfig
+	Config     *RpcConfig
 	client     *rpc.Client
 	keyManager *monkcrypto.KeyManager
 }
 
-// Create a new genesis block module
-func NewMonkRpcModule(block *monkchain.Block) *MonkRpcModule {
+// Create a new rpc module
+func NewMonkRpcModule() *MonkRpcModule {
 	g := new(MonkRpcModule)
 	g.Config = DefaultConfig
 	return g
@@ -58,11 +58,7 @@ func (mod *MonkRpcModule) Init() error {
 		mod.Config = DefaultConfig
 	}
 
-	mod.gConfig()
-
-	if monkutil.Config.Db == nil {
-		monkutil.Config.Db = NewDatabase(mod.Config.DbName)
-	}
+	mod.rConfig()
 
 	keyManager := NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
 	err := keyManager.Init(mod.Config.KeySession, mod.Config.KeyCursor, false)
@@ -71,23 +67,16 @@ func (mod *MonkRpcModule) Init() error {
 	}
 	mod.keyManager = keyManager
 
-	/*
-		keyManager := NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
-		err := keyManager.Init(mod.Config.KeySession, mod.Config.KeyCursor, false)
-		if err != nil {
-			return err
-		}
-		mod.keyManager = keyManager
-	*/
-
 	return nil
 }
 
 // This function does nothing. There are no processes to start
 func (mod *MonkRpcModule) Start() error {
-	client, err := rpc.DialHTTP("tcp", mod.Config.Host+":"+strconv.Itoa(mod.Config.Port))
+	client, err := rpc.DialHTTP("tcp", mod.Config.RpcHost+":"+strconv.Itoa(mod.Config.RpcPort))
+	client, err = rpc.DialHTTP("tcp", ":9093")
 	if err != nil {
-		log.Fatal("dialing:", err)
+		logger.Infoln(err)
+        os.Exit(0)
 	}
 	mod.client = client
 

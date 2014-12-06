@@ -2,14 +2,18 @@ package monkrpc
 
 import (
 	"fmt"
+    "io"
 	"os"
 	"os/user"
+    "log"
+    "path"
 
 	"github.com/eris-ltd/thelonious/monkchain"
 	"github.com/eris-ltd/thelonious/monkcrypto"
 	"github.com/eris-ltd/thelonious/monkdb"
 	"github.com/eris-ltd/thelonious/monkrpc"
 	"github.com/eris-ltd/thelonious/monkutil"
+	"github.com/eris-ltd/thelonious/monklog"
 )
 
 var (
@@ -89,4 +93,35 @@ func exit(err error) {
 		status = 1
 	}
 	os.Exit(status)
+}
+
+
+func InitLogging(Datadir string, LogFile string, LogLevel int, DebugFile string) {
+	var writer io.Writer
+	if LogFile == "" {
+		writer = os.Stdout
+	} else {
+		writer = openLogFile(Datadir, LogFile)
+	}
+	monklog.AddLogSystem(monklog.NewStdLogSystem(writer, log.LstdFlags, monklog.LogLevel(LogLevel)))
+	if DebugFile != "" {
+		writer = openLogFile(Datadir, DebugFile)
+		monklog.AddLogSystem(monklog.NewStdLogSystem(writer, log.LstdFlags, monklog.DebugLevel))
+	}
+}
+
+func AbsolutePath(Datadir string, filename string) string {
+	if path.IsAbs(filename) {
+		return filename
+	}
+	return path.Join(Datadir, filename)
+}
+
+func openLogFile(Datadir string, filename string) *os.File {
+	path := AbsolutePath(Datadir, filename)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		panic(fmt.Sprintf("error opening log file '%s': %v", filename, err))
+	}
+	return file
 }

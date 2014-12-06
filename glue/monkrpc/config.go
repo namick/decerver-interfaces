@@ -14,43 +14,61 @@ import (
 
 var ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
 
-type ChainConfig struct {
-	Host         string `json:"host"`
-	Port         int    `json:"port"`
-	ConfigFile   string `json:"config_file"`
-	DbName       string `json:"db_name"`
-	RootDir      string `json:"root_dir"`
-	LogFile      string `json:"log_file"`
-	LLLPath      string `json:"lll_path"`
-	ContractPath string `json:"contract_path"`
-	Local        bool   `json:"local"`
-	KeySession   string `json:"key_session"`
-	KeyStore     string `json:"key_store"`
-	KeyCursor    int    `json:"key_cursor"`
-	KeyFile      string `json:"key_file"`
-	LogLevel     int    `json:"log_level"`
+type RpcConfig struct {
+    // Networking
+	RpcHost         string `json:"rpc_host"`
+	RpcPort         int    `json:"rpc_port"`
+    
+    // If true, key management is handled 
+    // by the server (presumably on a local machine)
+    // else, txs are signed by a key and rlp serialized
+    Local           bool   `json:"local"`
+
+    // Only relevant if Local is false
+	KeySession       string `json:"key_session"`
+	KeyStore         string `json:"key_store"`
+	KeyCursor        int    `json:"key_cursor"`
+	KeyFile          string `json:"key_file"`
+
+    // Paths
+	RootDir          string `json:"root_dir"`
+	DbName           string `json:"db_name"`
+	LLLPath          string `json:"lll_path"`
+	ContractPath     string `json:"contract_path"`
+
+    // Logs
+	LogFile          string `json:"log_file"`
+	DebugFile        string `json:"debug_file"`
+	LogLevel         int    `json:"log_level"`
 }
 
 // set default config object
-var DefaultConfig = &ChainConfig{
-	Host:       "localhost",
-	Port:       30304,
-	ConfigFile: "config",
-	DbName:     "db",
-	RootDir:    path.Join(usr.HomeDir, ".monkchain2"),
-	Local:      false,
+var DefaultConfig = &RpcConfig{
+    // Network
+    RpcHost:    "",
+    RpcPort:    30304,
+
+    Local:  true,
+
+    // Local Node
 	KeySession: "generous",
+	KeyStore:         "file",
+	KeyCursor:        0,
+	KeyFile:          path.Join(ErisLtd, "thelonious", "monk", "keys.txt"),
+
+    // Paths
+	RootDir:    path.Join(usr.HomeDir, ".monkchain2"),
+	DbName:     "database",
+	LLLPath: "NETCALL", //path.Join(homeDir(), "cpp-ethereum/build/lllc/lllc"),
+	ContractPath:     path.Join(ErisLtd, "eris-std-lib"),
+
+    // Log
 	LogFile:    "",
-	//LLLPath: path.Join(homeDir(), "cpp-ethereum/build/lllc/lllc"),
-	LLLPath:      "NETCALL",
-	ContractPath: path.Join(ErisLtd, "eris-std-lib"),
-	KeyStore:     "file",
-	KeyCursor:    0,
-	KeyFile:      path.Join(ErisLtd, "thelonious", "monk", "keys.txt"),
-	LogLevel:     5,
+    DebugFile:  "",
+	LogLevel:         5,
 }
 
-// can these methods be functions in decerver that take the modules as argument?
+// Marshal the current configuration to file in pretty json.
 func (mod *MonkRpcModule) WriteConfig(config_file string) {
 	b, err := json.Marshal(mod.Config)
 	if err != nil {
@@ -61,6 +79,8 @@ func (mod *MonkRpcModule) WriteConfig(config_file string) {
 	json.Indent(&out, b, "", "\t")
 	ioutil.WriteFile(config_file, out.Bytes(), 0600)
 }
+
+// Unmarshal the configuration file into module's config struct.
 func (mod *MonkRpcModule) ReadConfig(config_file string) {
 	b, err := ioutil.ReadFile(config_file)
 	if err != nil {
@@ -69,17 +89,17 @@ func (mod *MonkRpcModule) ReadConfig(config_file string) {
 		mod.WriteConfig(config_file)
 		return
 	}
-	var config ChainConfig
+	var config RpcConfig
 	err = json.Unmarshal(b, &config)
 	if err != nil {
 		fmt.Println("error unmarshalling config from file:", err)
 		fmt.Println("resorting to defaults")
-		//mod.monk.config = DefaultConfig
 		return
 	}
 	*(mod.Config) = config
 }
 
+// Set a field in the config struct.
 func (mod *MonkRpcModule) SetConfig(field string, value interface{}) error {
 	cv := reflect.ValueOf(mod.Config).Elem()
 	f := cv.FieldByName(field)
@@ -100,9 +120,9 @@ func (mod *MonkRpcModule) SetConfig(field string, value interface{}) error {
 	return nil
 }
 
-// this will probably never be used
+// Set the config object directly
 func (mod *MonkRpcModule) SetConfigObj(config interface{}) error {
-	if c, ok := config.(*ChainConfig); ok {
+	if c, ok := config.(*RpcConfig); ok {
 		mod.Config = c
 	} else {
 		return fmt.Errorf("Invalid config object")
@@ -110,9 +130,9 @@ func (mod *MonkRpcModule) SetConfigObj(config interface{}) error {
 	return nil
 }
 
-// Set the package global variables, create the root data dir,
-//  copy keys if they are available, and setup logging
-func (mod *MonkRpcModule) gConfig() {
+// Set package global variables (LLLPath, monkutil.Config, logging).
+// Create the root data dir if it doesn't exist, and copy keys if they are available
+func (mod *MonkRpcModule) rConfig() {
 	cfg := mod.Config
 	// set lll path
 	if cfg.LLLPath != "" {
@@ -129,13 +149,24 @@ func (mod *MonkRpcModule) gConfig() {
 			Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
 		}
 	}
+	// a global monkutil.Config object is used for shared global access to the db. 
+	// this also uses rakyl/globalconf, but we mostly ignore all that
+	if monkutil.Config == nil {
+	    monkutil.Config = &monkutil.ConfigManager{ExecPath: cfg.RootDir, Debug: true, Paranoia: true}
+	}
+
+    if monkutil.Config.Db == nil{
+		monkutil.Config.Db = NewDatabase(mod.Config.DbName)
+    }
+
+	// TODO: enhance this with more pkg level control
+	InitLogging(cfg.RootDir, cfg.LogFile, cfg.LogLevel, cfg.DebugFile)
 }
 
-// common golang, really?
+// Is there really no way to copy a file in the std lib?
 func Copy(src, dst string) {
 	r, err := os.Open(src)
 	if err != nil {
-		fmt.Println(src, err)
 		logger.Errorln(err)
 		return
 	}
@@ -143,7 +174,6 @@ func Copy(src, dst string) {
 
 	w, err := os.Create(dst)
 	if err != nil {
-		fmt.Println(err)
 		logger.Errorln(err)
 		return
 	}
@@ -151,7 +181,6 @@ func Copy(src, dst string) {
 
 	_, err = io.Copy(w, r)
 	if err != nil {
-		fmt.Println(err)
 		logger.Errorln(err)
 		return
 	}
