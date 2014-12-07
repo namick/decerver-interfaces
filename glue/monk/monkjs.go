@@ -214,7 +214,7 @@ var StdVarOffset = "0x1";
 var NSBase = Exp("0x100","31");
 
 var esl = {};
-
+`
 esl.array = {
 
 	//Constants
@@ -295,7 +295,7 @@ esl.ll = {
 	"HeadSlotOffset"  : "1",
 	"LenSlotOffset"   : "2",
 
-	"LLLLSlotSize" 	  : "3",
+	"LLSlotSize" 	  : "3",
 
 	"EntryMainOffset" : "0",
 	"EntryPrevOffset" : "1",
@@ -316,8 +316,7 @@ esl.ll = {
 	},
 	
 	"HeadSlot" : function(name){
-	    Println("Headslot (llll)");
-		return Add(base, this.HeadSlotOffset);
+		return Add(esl.stdvar.VariBase(name), this.HeadSlotOffset);
 	},
 	
 	"LenSlot" : function(name){
@@ -339,7 +338,7 @@ esl.ll = {
 	//Gets
 	"TailAddr" : function(addr, name){
 		var tail = Monk.GetStorageAt(addr, this.TailSlot(name));
-		if(tail=="0"){
+		if(IsZero(tail)){
 			return null;
 		}
 		else{
@@ -349,7 +348,7 @@ esl.ll = {
 	
 	"HeadAddr" : function(addr, name){
 		var head = Monk.GetStorageAt(addr, this.HeadSlot(name));
-		if(head=="0"){
+		if(IsZero(head)){
 			return null;
 		}
 		else{
@@ -369,7 +368,7 @@ esl.ll = {
 	
 	"Head" : function(addr, name){
 		var head = Monk.GetStorageAt(addr, this.HeadSlot(name));
-		if(head === "0"){
+		if(IsZero(head)){
 			return null;
 		}
 		else{
@@ -387,7 +386,7 @@ esl.ll = {
 	
 	"PrevAddr" : function(addr, name, key){
 		var prev = Monk.GetStorageAt(addr, this.PrevSlot(name, key));
-		if(prev === "0"){
+		if(IsZero(prev)){
 			return null;
 		}
 		else{
@@ -397,7 +396,7 @@ esl.ll = {
 	
 	"NextAddr" : function(addr, name, key){
 		var next = Monk.GetStorageAt(addr, this.NextSlot(name, key));
-		if(next === "0"){
+		if(IsZero(next)){
 			return null;
 		}
 		else{
@@ -407,7 +406,7 @@ esl.ll = {
 	
 	"Prev" : function(addr, name, key){
 		var prev = Monk.GetStorageAt(addr, this.PrevSlot(name, key));
-		if(prev === "0"){
+		if(IsZero(prev)){
 			return null;
 		}
 		else{
@@ -417,7 +416,7 @@ esl.ll = {
 	
 	"Next" : function(addr, name, key){
 		var next = Monk.GetStorageAt(addr, this.NextSlot(name, key));
-		if(next === "0"){
+		if(IsZero(next)){
 			return null;
 		}
 		else{
