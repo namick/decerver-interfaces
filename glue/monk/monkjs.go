@@ -307,18 +307,18 @@ esl.ll = {
 	},
 
 	"TailSlot" : function(name){
-		var addr = esl.stdvar.Vari(name);
+		var addr = esl.stdvar.VariBase(name);
 		Println("TailSlot address, move on to esl.lll.TailSlot next: " + addr);
 		return esl.llll.TailSlot(addr);
 	},
 	
 	"HeadSlot" : function(name){
 	    Println("Headslot");
-		return esl.llll.HeadSlot(esl.stdvar.Vari(name));
+		return esl.llll.HeadSlot(esl.stdvar.VariBase(name));
 	},
 	
 	"LenSlot" : function(name){
-		return esl.llll.LenSlot(esl.stdvar.Vari(name));
+		return esl.llll.LenSlot(esl.stdvar.VariBase(name));
 	},
 
 	"MainSlot" : function(name, key){
@@ -453,7 +453,7 @@ esl.ll = {
        var list = [];
        var current = this.Tail(addr, name);
        Println("Current: " + current);
-       while(IsZero(current)){
+       while(!IsZero(current)){
            var pair = {};
            pair.Key = current;
            pair.Value = this.Main(addr, current);
@@ -617,6 +617,10 @@ esl.stdvar = {
 	
 	"VarBase" 	: function(varname){
 		return Add(varname, this.StdVarOffset);
+	},
+	
+	"VariBase" : function(varname){
+		return this.VarBase(this.Vari(varname))
 	},
 
 	//Data Slots
