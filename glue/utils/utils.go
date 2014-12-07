@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+    "strings"
 
 	"github.com/eris-ltd/thelonious/monkcrypto"
 	"github.com/eris-ltd/thelonious/monkdb"
@@ -20,9 +21,9 @@ import (
 
 var (
 	GoPath  = os.Getenv("GOPATH")
-	usr, _  = user.Current() // error?!
 	ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
 
+	usr, _      = user.Current() // error?!
 	Decerver    = path.Join(usr.HomeDir, ".decerver")
 	Apps        = path.Join(Decerver, "apps")
 	Blockchains = path.Join(Decerver, "blockchains")
@@ -30,8 +31,15 @@ var (
 	Logs        = path.Join(Decerver, "logs")
 	Modules     = path.Join(Decerver, "modules")
 	Scratch     = path.Join(Decerver, "scratch")
+    HEAD        = path.Join(Blockchains, "HEAD")
 	Refs        = path.Join(Blockchains, "refs")
+    Epm         = path.Join(Scratch, "epm")
+    Lllc        = path.Join(Scratch, "lllc")
 )
+
+var MajorDirs = []string{
+    Decerver, Apps, Blockchains, Filesystems, Logs, Modules, Scratch, Refs, Epm, Lllc,
+}
 
 func NewDatabase(dbName string) monkutil.Database {
 	db, err := monkdb.NewLDBDatabase(dbName)
@@ -147,8 +155,7 @@ func InitDataDir(Datadir string) error {
 }
 
 func InitDecerverDir() error {
-	dirs := []string{Decerver, Apps, Blockchains, Filesystems, Logs, Modules, Scratch}
-	for _, d := range dirs {
+	for _, d := range MajorDirs {
 		err := InitDataDir(d)
 		if err != nil {
 			return err
@@ -184,12 +191,53 @@ func ChainIdFromName(name string) string {
 	return string(b)
 }
 
-func NewChainRef(name, chainId string) error {
-	InitDataDir(Refs)
-	p := path.Join(Refs, name)
-	_, err := os.Stat(p)
-	if err == nil {
-		return fmt.Errorf("Chain named %s already exists", name)
-	}
-	return ioutil.WriteFile(p, []byte(chainId), 0644)
+
+func ResolveChain(chainType, name, chainId string) string{
+    var p string
+    idFromName := ChainIdFromName(name) 
+    if idFromName != ""{
+        p = path.Join(Blockchains, chainType, idFromName)
+    } else if chainId != ""{
+        p = path.Join(Blockchains, chainType, chainId)
+    }
+
+    _, err := os.Stat(p)
+    if err != nil{
+        return ""
+    }
+    return p
+}
+
+// Maximum entries in the HEAD file
+var MaxHead = 100
+
+// The HEAD file is a running list of the latest head
+// so we can go back if we mess up or forget
+func ChangeHead(head string) error {
+    b, err := ioutil.ReadFile(HEAD)
+    if err != nil{
+        return err
+    }
+    bspl := strings.Split(string(b), "\n")
+    var bsp string
+    if len(bspl) >= MaxHead{
+        bsp = strings.Join(bspl[:MaxHead-1], "\n")
+    } else{
+        bsp = string(b)
+    }
+    bsp = head+"\n"+bsp
+    err = ioutil.WriteFile(HEAD, []byte(bsp), 0644)
+    if err != nil{
+        return err
+    }
+    return nil
+}
+
+// Add a reference name to a chainId
+func AddRef(id, ref string) error {
+    _, err := os.Stat(path.Join(Refs, ref))
+    if err == nil{
+        return fmt.Errorf("Ref %s already exists", ref)
+    }
+    return ioutil.WriteFile(path.Join(Refs, ref), []byte(id), 0644)
 }
