@@ -23,7 +23,7 @@ type (
 		Repository         *Repository         `json:"repository"`
 		Bugs               *Bugs               `json:"bugs"`
 		Licence            *Licence            `json:"licence"`
-		ModuleDependencies *ModuleDependencies `json:"moduleDependencies"`
+		ModuleDependencies []*ModuleDependency `json:"moduleDependencies"`
 	}
 
 	Author struct {
@@ -45,11 +45,7 @@ type (
 		Url  string `json:"url"`
 	}
 
-	ModuleDependencies struct {
-		deps map[string]*Module
-	}
-
-	Module struct {
+	ModuleDependency struct {
 		Name    string `json:"name"`
 		Version string `json:"version"`
 	}
