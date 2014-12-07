@@ -1,15 +1,15 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
 	"path"
-    "bytes"
-    "io/ioutil"
-    "encoding/json"
 
 	"github.com/eris-ltd/thelonious/monkcrypto"
 	"github.com/eris-ltd/thelonious/monkdb"
@@ -19,17 +19,18 @@ import (
 )
 
 var (
-	GoPath = os.Getenv("GOPATH")
-	usr, _ = user.Current() // error?!
-    ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
+	GoPath  = os.Getenv("GOPATH")
+	usr, _  = user.Current() // error?!
+	ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
 
-    Decerver = path.Join(usr.HomeDir, ".decerver")
-    Apps = path.Join(Decerver, "apps")    
-    Blockchains = path.Join(Decerver, "blockchains")    
-    Filesystems = path.Join(Decerver, "filesystems")    
-    Logs = path.Join(Decerver, "logs")
-    Modules = path.Join(Decerver, "modules")
-    Scratch = path.Join(Decerver, "scratch")
+	Decerver    = path.Join(usr.HomeDir, ".decerver")
+	Apps        = path.Join(Decerver, "apps")
+	Blockchains = path.Join(Decerver, "blockchains")
+	Filesystems = path.Join(Decerver, "filesystems")
+	Logs        = path.Join(Decerver, "logs")
+	Modules     = path.Join(Decerver, "modules")
+	Scratch     = path.Join(Decerver, "scratch")
+	Refs        = path.Join(Blockchains, "refs")
 )
 
 func NewDatabase(dbName string) monkutil.Database {
@@ -137,59 +138,58 @@ func InitDataDir(Datadir string) error {
 		if os.IsNotExist(err) {
 			fmt.Printf("Creating directory: '%s'\n", Datadir)
 			err := os.MkdirAll(Datadir, 0777)
-            if err != nil{
-                return err
-            }
+			if err != nil {
+				return err
+			}
 		}
 	}
-    return nil
+	return nil
 }
 
-func InitDecerverDir() error{
-    dirs := []string{Decerver, Apps, Blockchains, Filesystems, Logs, Modules, Scratch}
-    for _, d := range dirs{
-        err := InitDataDir(d)
-        if err != nil{
-            return err
-        }
-    }
-    err := InitDataDir(path.Join(Blockchains, "refs"))
-    if err != nil{
-        return err
-    }
-    _, err = os.Create(path.Join(Blockchains, "HEAD"))
-    return err
+func InitDecerverDir() error {
+	dirs := []string{Decerver, Apps, Blockchains, Filesystems, Logs, Modules, Scratch}
+	for _, d := range dirs {
+		err := InitDataDir(d)
+		if err != nil {
+			return err
+		}
+	}
+	err := InitDataDir(path.Join(Blockchains, "refs"))
+	if err != nil {
+		return err
+	}
+	_, err = os.Create(path.Join(Blockchains, "HEAD"))
+	return err
 }
 
-func WriteJson(config interface{}, config_file string) error{
+func WriteJson(config interface{}, config_file string) error {
 	b, err := json.Marshal(config)
 	if err != nil {
 		return err
 	}
 	var out bytes.Buffer
 	err = json.Indent(&out, b, "", "\t")
-    if err != nil{
-        return err
-    }
+	if err != nil {
+		return err
+	}
 	err = ioutil.WriteFile(config_file, out.Bytes(), 0600)
-    return err
+	return err
 }
 
-func ChainIdFromName(name string) string{
-    b, err := ioutil.ReadFile(path.Join(Blockchains, "refs", name))
-    if err != nil{
-        return ""
-    }
-    return string(b)
+func ChainIdFromName(name string) string {
+	b, err := ioutil.ReadFile(path.Join(Blockchains, "refs", name))
+	if err != nil {
+		return ""
+	}
+	return string(b)
 }
 
-func NewChainRef(name, chainId string) error{
-    p := path.Join(Blockchains, "refs", name)
-    _, err := os.Stat(p)
-    if err == nil{
-        return fmt.Errorf("Chain named %s already exists", name)
-    }
-    return ioutil.WriteFile(p, []byte(chainId), 0644)
+func NewChainRef(name, chainId string) error {
+	InitDataDir(Refs)
+	p := path.Join(Refs, name)
+	_, err := os.Stat(p)
+	if err == nil {
+		return fmt.Errorf("Chain named %s already exists", name)
+	}
+	return ioutil.WriteFile(p, []byte(chainId), 0644)
 }
-
-
