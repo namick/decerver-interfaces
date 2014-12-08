@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	mutils "github.com/eris-ltd/decerver-interfaces/glue/monkutils"
 	"github.com/eris-ltd/decerver-interfaces/glue/utils"
 	"github.com/eris-ltd/thelonious/monkutil"
 	"io/ioutil"
@@ -12,7 +13,7 @@ import (
 	"reflect"
 )
 
-var ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
+var ErisLtd = utils.ErisLtd
 
 type RpcConfig struct {
 	// Networking
@@ -156,7 +157,7 @@ func (mod *MonkRpcModule) rConfig() {
 	}
 
 	if monkutil.Config.Db == nil {
-		monkutil.Config.Db = utils.NewDatabase(mod.Config.DbName)
+		monkutil.Config.Db = mutils.NewDatabase(mod.Config.DbName)
 	}
 
 	// TODO: enhance this with more pkg level control

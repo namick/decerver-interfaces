@@ -12,7 +12,7 @@ import (
 	"reflect"
 )
 
-var ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
+var ErisLtd = utils.ErisLtd
 
 type ChainConfig struct {
 	ConfigFile   string `json:"config_file"`

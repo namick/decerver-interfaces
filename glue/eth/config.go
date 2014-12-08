@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/eris-ltd/decerver-interfaces/glue/utils"
 	"github.com/ethereum/go-ethereum/ethutil"
 	"io"
 	"io/ioutil"
@@ -12,7 +13,7 @@ import (
 	"reflect"
 )
 
-var ErisLtd = path.Join(GoPath, "src", "github.com", "eris-ltd")
+var ErisLtd = utils.ErisLtd
 
 type ChainConfig struct {
 	Port             int    `json:"port"`

@@ -12,7 +12,7 @@ import (
 
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
-	"github.com/eris-ltd/decerver-interfaces/glue/utils"
+	mutils "github.com/eris-ltd/decerver-interfaces/glue/monkutils"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 
 	"github.com/eris-ltd/thelonious/monkchain"
@@ -63,7 +63,7 @@ func (mod *MonkRpcModule) Init() error {
 
 	mod.rConfig()
 
-	keyManager := utils.NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
+	keyManager := mutils.NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
 	err := keyManager.Init(mod.Config.KeySession, mod.Config.KeyCursor, false)
 	if err != nil {
 		return err
@@ -187,10 +187,10 @@ func (mod *MonkRpcModule) Msg(addr string, data []string) (string, error) {
 func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
 	var scriptHex string
 	if lang == "lll-literal" {
-		scriptHex = utils.CompileLLL(file, true)
+		scriptHex = mutils.CompileLLL(file, true)
 	}
 	if lang == "lll" {
-		scriptHex = utils.CompileLLL(file, false) // if lll, compile and pass along
+		scriptHex = mutils.CompileLLL(file, false) // if lll, compile and pass along
 	} else if lang == "mutan" {
 		s, _ := ioutil.ReadFile(file) // if mutan, pass along and pipe will compile
 		scriptHex = string(s)
