@@ -215,6 +215,10 @@ var NSBase = Exp("0x100","31");
 
 var esl = {};
 
+esl.SA = function(acc,addr) {
+	return monk.StorageAt(acc,addr).Data;
+};
+
 esl.array = {
 
 	//Constants
@@ -247,11 +251,11 @@ esl.array = {
 	
 	//Gets
 	"ESize" : function(addr, name){
-		return Monk.GetStorageAt(addr, this.EsizeSlot(name));
+		return esl.SA(addr, this.EsizeSlot(name));
 	},
 	
 	"MaxE" : function(addr, name, key){
-		return Monk.GetStorageAt(addr, this.MaxESlot(name, key));
+		return esl.SA(addr, this.MaxESlot(name, key));
 	},
 
 	"Element" : function(addr, name, key, index){
@@ -261,13 +265,13 @@ esl.array = {
 		}
 
 		if(Esize == "0x100"){
-			return Monk.GetStorageAt(addr, Add(index, this.StartOffset));
+			return esl.SA(addr, Add(index, this.StartOffset));
 		}else{
 			var eps = Div("0x100",Esize);
 			var pos = Mod(index, eps);
 			var row = Add(Mod(Div(index, eps),"0xFFFF"), this.StartOffset);
 
-			var sval = Monk.GetStorageAt(addr, row);
+			var sval = esl.SA(addr, row);
 			return Mod(Div(sval, Exp(Esize, pos)), Exp("2", Esize)); 
 		}
 	},
@@ -284,7 +288,7 @@ esl.keyvalue = {
 	},
 	
 	"Value" : function(addr, name, key){
-		return Monk.GetStorageAt(addr, this.CTS(name, key));
+		return esl.SA(addr, this.CTS(name, key));
 	},
 };
 
@@ -312,6 +316,7 @@ esl.ll = {
 
 	// Structure
 	"TailSlot" : function(name){
+		Println("TailSlot");
 		return Add(esl.stdvar.VariBase(name), this.TailSlotOffset);
 	},
 	
@@ -337,7 +342,7 @@ esl.ll = {
 
 	//Gets
 	"TailAddr" : function(addr, name){
-		var tail = Monk.GetStorageAt(addr, this.TailSlot(name));
+		var tail = esl.SA(addr, this.TailSlot(name));
 		if(IsZero(tail)){
 			return null;
 		}
@@ -347,7 +352,7 @@ esl.ll = {
 	},
 	
 	"HeadAddr" : function(addr, name){
-		var head = Monk.GetStorageAt(addr, this.HeadSlot(name));
+		var head = esl.SA(addr, this.HeadSlot(name));
 		if(IsZero(head)){
 			return null;
 		}
@@ -357,7 +362,9 @@ esl.ll = {
 	},
 	
 	"Tail" : function(addr, name){
-		var tail = Monk.GetStorageAt(addr, this.TailSlot(name));
+		Println("Tail");
+		var tail = esl.SA(addr, this.TailSlot(name));
+		Println("Tail gotten");
 		if(IsZero(tail)){
 			return null;
 		}
@@ -367,7 +374,7 @@ esl.ll = {
 	},
 	
 	"Head" : function(addr, name){
-		var head = Monk.GetStorageAt(addr, this.HeadSlot(name));
+		var head = esl.SA(addr, this.HeadSlot(name));
 		if(IsZero(head)){
 			return null;
 		}
@@ -377,15 +384,15 @@ esl.ll = {
 	},
 	
 	"Len"  : function(addr, name){
-		return Monk.GetStorageAt(addr, this.LenSlot(name));
+		return esl.SA(addr, this.LenSlot(name));
 	},
 
 	"Main" : function(addr, name, key){
-		return Monk.GetStorageAt(addr, this.MainSlot(name, key));
+		return esl.SA(addr, this.MainSlot(name, key));
 	},
 	
 	"PrevAddr" : function(addr, name, key){
-		var prev = Monk.GetStorageAt(addr, this.PrevSlot(name, key));
+		var prev = esl.SA(addr, this.PrevSlot(name, key));
 		if(IsZero(prev)){
 			return null;
 		}
@@ -395,7 +402,7 @@ esl.ll = {
 	},
 	
 	"NextAddr" : function(addr, name, key){
-		var next = Monk.GetStorageAt(addr, this.NextSlot(name, key));
+		var next = esl.SA(addr, this.NextSlot(name, key));
 		if(IsZero(next)){
 			return null;
 		}
@@ -405,7 +412,7 @@ esl.ll = {
 	},
 	
 	"Prev" : function(addr, name, key){
-		var prev = Monk.GetStorageAt(addr, this.PrevSlot(name, key));
+		var prev = esl.SA(addr, this.PrevSlot(name, key));
 		if(IsZero(prev)){
 			return null;
 		}
@@ -415,7 +422,7 @@ esl.ll = {
 	},
 	
 	"Next" : function(addr, name, key){
-		var next = Monk.GetStorageAt(addr, this.NextSlot(name, key));
+		var next = esl.SA(addr, this.NextSlot(name, key));
 		if(IsZero(next)){
 			return null;
 		}
@@ -443,95 +450,91 @@ esl.ll = {
 			list.push(current);
 			current = this.Next(addr, name, current);
 		}
-
 		return keys;
 	},
-
+	
 	"GetPairs" : function(addr, name){
 	   Println("Getting Pairs");
-       var list = [];
+       var list = new Array();
        var current = this.Tail(addr, name);
-       Println("Current: " + current);
-       while(!IsZero(current)){
+       
+       while(current !== null){
            var pair = {};
            pair.Key = current;
            pair.Value = this.Main(addr, name, current);
            list.push(pair);
            current = this.Next(addr, name, current);
-           Println("Current: " + current);
        }
        return list;
    },
 };
 
-
 esl.single = {
-
+	
 	//Structure
 	"ValueSlot" : function(name){
 		return esl.stdvar.VariBase(name);
 	},
-
+	
 	//Gets
 	"Value" : function(addr, name){
-		return GetStorageAt(addr, this.ValueSlot(name));
+		return esl.SA(addr, this.ValueSlot(name));
 	},
 };
 
 
 esl.double = {
-
+	
 	//Structure
 	"ValueSlot" : function(name){
 		return esl.stdvar.VariBase(name);
 	},
 	
-	"ValueSlot2" : function(varname){
-		return Add(esl.stdvar.VariBase(name),1);
+	"ValueSlot2" : function(name){
+		return Add(esl.stdvar.VariBase(name),"1");
 	},
 	
 	//Gets
 	"Value" : function(addr, name){
 		var values = [];
-		values.push(Monk.GetStorageAt(addr, this.ValueSlot(name)));
-		values.push(Monk.GetStorageAt(addr, this.ValueSlot2(name)));
+		Println("Double value: " + addr);
+		Println("Double name: " + name);
+		values.push(esl.SA(addr, this.ValueSlot(name)));
+		values.push(esl.SA(addr, this.ValueSlot2(name)));
 		return values;
 	},
 };
 
 
 esl.stdvar = {
-
+	
 	//Constants
 	"StdVarOffset" 	: "0x1",
 	"VarSlotSize" 	: "0x5",
-
+	
 	"TypeOffset"	: "0x0",
 	"NameOffset"	: "0x1",
 	"AddPermOffset"	: "0x2",
 	"RmPermOffset"	: "0x3",
 	"ModPermOffset"	: "0x4",
-
+	
 	//Functions?
 	"Vari" 	: function(name){
 		var sha3 = SHA3(name);
-		Println("Sha3: " + sha3);
 		var fact = Div(sha3, Exp("0x100", "24") );
-		Println("Fact: " + fact);
-		var addr = Add(NSBase, Mul(fact,Exp("0x100", "23")));
+		var addr = Add(NSBase, Mul(fact,Exp("0x100", "23")) );
 		Println("Variable name to address: " + addr);
 		return addr;
 	},
 	
-	"VarBase" 	: function(base){
+	"VarBase" : function(base){
 		return Add(base, this.VarSlotSize);
 	},
 	
 	"VariBase" : function(varname){
-		return this.VarBase(this.Vari(name))
+		return this.VarBase(this.Vari(varname));
 	},
-
-
+	
 	//Data Slots
 	"VarTypeSlot"	: function(name){
 		return Add(this.Vari(name),TypeOffset);
@@ -552,27 +555,26 @@ esl.stdvar = {
 	"VarModPermSlot"	: function(name){
 		return Add(this.Vari(name), ModPermOffset);
 	},
-
-
+	
 	//Getting Variable stuff
 	"Type" 	: function(addr, name){
-		return Monk.GetStorageAt(addr,this.VarTypeSlot(name));
+		return esl.SA(addr,this.VarTypeSlot(name));
 	},
 	
 	"Name" 	: function(addr, name){
-		return Monk.GetStorageAt(addr,this.VarNameSlot(name));
+		return esl.SA(addr,this.VarNameSlot(name));
 	},
 	
 	"Addperm" 	: function(addr, varname){
-		return Monk.GetStorageAt(addr,this.VarAddPermSlot(name));
+		return esl.SA(addr,this.VarAddPermSlot(name));
 	},
 	
 	"Rmperm" 	: function(addr, varname){
-		return Monk.GetStorageAt(addr,this.VarRmPermSlot(name));
+		return esl.SA(addr,this.VarRmPermSlot(name));
 	},
 	
 	"Modperm" 	: function(addr, varname){
-		return Monk.GetStorageAt(addr,this.VarModPermSlot(name));
+		return esl.SA(addr,this.VarModPermSlot(name));
 	},
 } 
 `
