@@ -47,7 +47,7 @@ type Ipfs struct {
 }
 
 func (mod *IpfsModule) Register(fileIO decore.FileIO, rm decore.RuntimeManager, eReg events.EventRegistry) error {
-	rm.RegisterApi("ipfs", mod)
+	rm.RegisterApiObject("ipfs", mod)
 	return nil
 }
 
@@ -142,11 +142,19 @@ func (mod *IpfsModule) Push(cmd string, params ...string) modules.JsObject {
 }
 
 func (mod *IpfsModule) GetBlock(hash string) modules.JsObject {
-	return modules.JsReturnVal(mod.ipfs.GetBlock(hash))
+	data, err := mod.ipfs.GetFile(hash)
+	if err != nil {
+		modules.JsReturnValErr(err)
+	}
+	return modules.JsReturnValNoErr(string(data))
 }
 
 func (mod *IpfsModule) GetFile(hash string) modules.JsObject {
-	return modules.JsReturnVal(mod.ipfs.GetFile(hash))
+	data, err := mod.ipfs.GetFile(hash)
+	if err != nil {
+		modules.JsReturnValErr(err)
+	}
+	return modules.JsReturnValNoErr(string(data))
 }
 
 // func (mod *IpfsModule) GetStream(hash string) (chan []byte, error) {

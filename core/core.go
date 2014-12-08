@@ -39,7 +39,8 @@ type RuntimeManager interface {
 	GetRuntime(string) Runtime
 	CreateRuntime(string) Runtime
 	RemoveRuntime(string)
-	RegisterApi(string, interface{})
+	RegisterApiObject(string, interface{})
+	RegisterApiScript(string)
 }
 
 type Runtime interface {
@@ -47,7 +48,6 @@ type Runtime interface {
 	LoadScriptFile(fileName string) error
 	LoadScriptFiles(fileName ...string) error
 	AddScript(script string) error
-	RunFunction(funcName string, params []string) (interface{}, error)
 	CallFunc(funcName string, param ...interface{}) (interface{}, error)
 	CallFuncOnObj(objName, funcName string, param ...interface{}) (interface{}, error)
 }

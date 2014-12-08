@@ -20,7 +20,8 @@ func NewMonkJs() *MonkJs {
 
 // register the module with the decerver javascript vm
 func (mjs *MonkJs) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
-	rm.RegisterApi("monk", mjs)
+	rm.RegisterApiObject("monk", mjs)
+	rm.RegisterApiScript(eslScript)
 	return nil
 }
 
@@ -76,8 +77,15 @@ func (mjs *MonkJs) Account(target string) modules.JsObject {
 	return modules.JsReturnVal(modules.ToMap(mjs.mm.Account(target)), nil)
 }
 
-func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject {
-	return modules.JsReturnVal(mjs.mm.StorageAt(target, storage), nil)
+func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject  {
+	ret := mjs.mm.StorageAt(target, storage)
+	if ret == "" || ret == "0x"{
+		ret = "0x0"
+	} else {
+		ret = "0x" + ret
+	}
+	
+	return modules.JsReturnVal(ret, nil)
 }
 
 func (mjs *MonkJs) BlockCount() modules.JsObject {
@@ -198,3 +206,373 @@ func (mjs *MonkJs) NewAddress(set bool) modules.JsObject {
 func (mjs *MonkJs) AddressCount() modules.JsObject {
 	return modules.JsReturnValNoErr(mjs.mm.AddressCount())
 }
+
+var eslScript string = `
+
+var StdVarOffset = "0x1";
+
+var NSBase = Exp("0x100","31");
+
+var esl = {};
+
+esl.array = {
+
+	//Constants
+	"ESizeOffset" : "0",
+
+	"MaxEOffset" : "0",
+	"StartOffset" : "1",
+
+	//Structure
+	"CTS" : function(name, key){
+		return Add(esl.stdvar.Vari(name), Add(Mul(Mod(key, Exp("0x100", "20")), Exp("0x100", "3")), Exp("0x100","2")));
+	},
+	
+	"CTK" : function(slot){
+		return Mod(Div(slot, Exp("0x100","3")), Exp("0x100","20"));
+	},
+
+	"ESizeslot" : function(name){
+		return Add(esl.stdvar.VariBase(name), this.ESizeOffset);
+	},
+	
+	"MaxESlot" : function(name, key){
+		return Add(this.CTS(name, key),this.MaxEOffset);
+	},
+	
+	"StartSlot" : function(name, key){
+		return Add(this.CTS(name, key),this.StartOffset);
+	},
+
+	
+	//Gets
+	"ESize" : function(addr, name){
+		return Monk.GetStorageAt(addr, this.EsizeSlot(name));
+	},
+	
+	"MaxE" : function(addr, name, key){
+		return Monk.GetStorageAt(addr, this.MaxESlot(name, key));
+	},
+
+	"Element" : function(addr, name, key, index){
+		var Esize = this.ESize(addr, name);
+		if(this.MaxE(addr, name, key) > index){
+			return "0";
+		}
+
+		if(Esize == "0x100"){
+			return Monk.GetStorageAt(addr, Add(index, this.StartOffset));
+		}else{
+			var eps = Div("0x100",Esize);
+			var pos = Mod(index, eps);
+			var row = Add(Mod(Div(index, eps),"0xFFFF"), this.StartOffset);
+
+			var sval = Monk.GetStorageAt(addr, row);
+			return Mod(Div(sval, Exp(Esize, pos)), Exp("2", Esize)); 
+		}
+	},
+};
+
+esl.keyvalue = {
+
+	"CTS" : function(name, key){
+		return Add(esl.stdvar.Vari(name), Add(Mul(Mod(key, Exp("0x100", "20")), Exp("0x100", "3")), Exp("0x100","2")));
+	},
+	
+	"CTK" : function(slot){
+		return Mod(Div(slot, Exp("0x100","3")), Exp("0x100","20"));
+	},
+	
+	"Value" : function(addr, name, key){
+		return Monk.GetStorageAt(addr, this.CTS(name, key));
+	},
+};
+
+esl.ll = {
+
+	//Constants
+	"TailSlotOffset"  : "0",
+	"HeadSlotOffset"  : "1",
+	"LenSlotOffset"   : "2",
+
+	"LLSlotSize" 	  : "3",
+
+	"EntryMainOffset" : "0",
+	"EntryPrevOffset" : "1",
+	"EntryNextOffset" : "2",
+
+	//Structure
+	"CTS" : function(name, key){
+		return Add(esl.stdvar.Vari(name), Add(Mul(Mod(key, Exp("0x100", "20")), Exp("0x100", "3")), Exp("0x100","2")));
+	},
+	
+	"CTK" : function(slot){
+		return Mod(Div(slot, Exp("0x100","3")), Exp("0x100","20"));
+	},
+
+	// Structure
+	"TailSlot" : function(name){
+		return Add(esl.stdvar.VariBase(name), this.TailSlotOffset);
+	},
+	
+	"HeadSlot" : function(name){
+		return Add(esl.stdvar.VariBase(name), this.HeadSlotOffset);
+	},
+	
+	"LenSlot" : function(name){
+		return Add(esl.stdvar.VariBase(name), this.LenSlotOffset);
+	},
+
+	"MainSlot" : function(name, key){
+		return Add(this.CTS(name, key), this.EntryMainOffset);
+	},
+	
+	"PrevSlot" : function(name, key){
+		return Add(this.CTS(name,key), this.EntryPrevOffset);
+	},
+	
+	"NextSlot" : function(name, key){
+		return Add(this.CTS(name,key), this.EntryNextOffset);
+	},
+
+	//Gets
+	"TailAddr" : function(addr, name){
+		var tail = Monk.GetStorageAt(addr, this.TailSlot(name));
+		if(IsZero(tail)){
+			return null;
+		}
+		else{
+			return tail;
+		}
+	},
+	
+	"HeadAddr" : function(addr, name){
+		var head = Monk.GetStorageAt(addr, this.HeadSlot(name));
+		if(IsZero(head)){
+			return null;
+		}
+		else{
+			return head;
+		}
+	},
+	
+	"Tail" : function(addr, name){
+		var tail = Monk.GetStorageAt(addr, this.TailSlot(name));
+		if(IsZero(tail)){
+			return null;
+		}
+		else{
+			return this.CTK(tail);
+		}
+	},
+	
+	"Head" : function(addr, name){
+		var head = Monk.GetStorageAt(addr, this.HeadSlot(name));
+		if(IsZero(head)){
+			return null;
+		}
+		else{
+			return this.CTK(head);
+		}
+	},
+	
+	"Len"  : function(addr, name){
+		return Monk.GetStorageAt(addr, this.LenSlot(name));
+	},
+
+	"Main" : function(addr, name, key){
+		return Monk.GetStorageAt(addr, this.MainSlot(name, key));
+	},
+	
+	"PrevAddr" : function(addr, name, key){
+		var prev = Monk.GetStorageAt(addr, this.PrevSlot(name, key));
+		if(IsZero(prev)){
+			return null;
+		}
+		else{
+			return prev;
+		}
+	},
+	
+	"NextAddr" : function(addr, name, key){
+		var next = Monk.GetStorageAt(addr, this.NextSlot(name, key));
+		if(IsZero(next)){
+			return null;
+		}
+		else{
+			return next;
+		}
+	},
+	
+	"Prev" : function(addr, name, key){
+		var prev = Monk.GetStorageAt(addr, this.PrevSlot(name, key));
+		if(IsZero(prev)){
+			return null;
+		}
+		else{
+			return this.CTK(prev);
+		}	
+	},
+	
+	"Next" : function(addr, name, key){
+		var next = Monk.GetStorageAt(addr, this.NextSlot(name, key));
+		if(IsZero(next)){
+			return null;
+		}
+		else{
+			return this.CTK(next);
+		}
+	},
+
+	//Gets the whole list. Note the separate function which gets the keys
+	"GetList" : function(addr, name){
+		var list = [];
+		var current = this.Tail(addr, name);
+		while(current !== null){
+			list.push(this.Main(addr, current));
+			current = this.Next(addr, current);
+		}
+
+		return list;
+	},
+
+	"GetKeys" : function(addr, name){
+		var keys = [];
+		var current = this.Tail(addr, name);
+		while(current !== null){
+			list.push(current);
+			current = this.Next(addr, current);
+		}
+
+		return keys;
+	},
+
+	"GetPairs" : function(addr, name){
+	   Println("Getting Pairs");
+       var list = [];
+       var current = this.Tail(addr, name);
+       Println("Current: " + current);
+       while(!IsZero(current)){
+           var pair = {};
+           pair.Key = current;
+           pair.Value = this.Main(addr, current);
+           list.push(pair);
+           current = this.Next(addr, current);
+           Println("Current: " + current);
+       }
+       return list;
+   },
+};
+
+
+esl.single = {
+
+	//Structure
+	"ValueSlot" : function(name){
+		return esl.stdvar.VariBase(name);
+	},
+
+	//Gets
+	"Value" : function(addr, name){
+		return GetStorageAt(addr, this.ValueSlot(name));
+	},
+};
+
+
+esl.double = {
+
+	//Structure
+	"ValueSlot" : function(name){
+		return esl.stdvar.VariBase(name);
+	},
+	
+	"ValueSlot2" : function(varname){
+		return Add(esl.stdvar.VariBase(name),1);
+	},
+	
+	//Gets
+	"Value" : function(addr, name){
+		var values = [];
+		values.push(Monk.GetStorageAt(addr, this.ValueSlot(name)));
+		values.push(Monk.GetStorageAt(addr, this.ValueSlot2(name)));
+		return values;
+	},
+};
+
+
+esl.stdvar = {
+
+	//Constants
+	"StdVarOffset" 	: "0x1",
+	"VarSlotSize" 	: "0x5",
+
+	"TypeOffset"	: "0x0",
+	"NameOffset"	: "0x1",
+	"AddPermOffset"	: "0x2",
+	"RmPermOffset"	: "0x3",
+	"ModPermOffset"	: "0x4",
+
+	//Functions?
+	"Vari" 	: function(name){
+		var sha3 = SHA3(name);
+		Println("Sha3: " + sha3);
+		var fact = Div(sha3, Exp("0x100", "24") );
+		Println("Fact: " + fact);
+		var addr = Add(NSBase, Mul(fact,Exp("0x100", "23")));
+		Println("Variable name to address: " + addr);
+		return addr;
+	},
+	
+	"VarBase" 	: function(base){
+		return Add(base, this.VarSlotSize);
+	},
+	
+	"VariBase" : function(varname){
+		return this.VarBase(this.Vari(name))
+	},
+
+
+	//Data Slots
+	"VarTypeSlot"	: function(name){
+		return Add(this.Vari(name),TypeOffset);
+	},
+	
+	"VarNameSlot"	: function(name){
+		return Add(this.Vari(name), NameOffset);
+	},
+	
+	"VarAddPermSlot"	: function(name){
+		return Add(this.Vari(name), AddPermOffset);
+	},
+	
+	"VarRmPermSlot" 	: function(name){
+		return Add(this.Vari(name), RmPermOffset);
+	},
+	
+	"VarModPermSlot"	: function(name){
+		return Add(this.Vari(name), ModPermOffset);
+	},
+
+
+	//Getting Variable stuff
+	"Type" 	: function(addr, name){
+		return Monk.GetStorageAt(addr,this.VarTypeSlot(name));
+	},
+	
+	"Name" 	: function(addr, name){
+		return Monk.GetStorageAt(addr,this.VarNameSlot(name));
+	},
+	
+	"Addperm" 	: function(addr, varname){
+		return Monk.GetStorageAt(addr,this.VarAddPermSlot(name));
+	},
+	
+	"Rmperm" 	: function(addr, varname){
+		return Monk.GetStorageAt(addr,this.VarRmPermSlot(name));
+	},
+	
+	"Modperm" 	: function(addr, varname){
+		return Monk.GetStorageAt(addr,this.VarModPermSlot(name));
+	},
+} 
+`
