@@ -429,8 +429,8 @@ esl.ll = {
 		var list = [];
 		var current = this.Tail(addr, name);
 		while(current !== null){
-			list.push(this.Main(addr, current));
-			current = this.Next(addr, current);
+			list.push(this.Main(addr, name, current));
+			current = this.Next(addr, name, current);
 		}
 
 		return list;
@@ -441,7 +441,7 @@ esl.ll = {
 		var current = this.Tail(addr, name);
 		while(current !== null){
 			list.push(current);
-			current = this.Next(addr, current);
+			current = this.Next(addr, name, current);
 		}
 
 		return keys;
@@ -455,9 +455,9 @@ esl.ll = {
        while(!IsZero(current)){
            var pair = {};
            pair.Key = current;
-           pair.Value = this.Main(addr, current);
+           pair.Value = this.Main(addr, name, current);
            list.push(pair);
-           current = this.Next(addr, current);
+           current = this.Next(addr, name, current);
            Println("Current: " + current);
        }
        return list;
