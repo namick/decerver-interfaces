@@ -10,13 +10,9 @@ import (
 	"os"
 	"os/user"
 	"path"
-    "strings"
+	"strings"
 
-	"github.com/eris-ltd/thelonious/monkcrypto"
-	"github.com/eris-ltd/thelonious/monkdb"
 	"github.com/eris-ltd/thelonious/monklog"
-	"github.com/eris-ltd/thelonious/monkutil"
-	"github.com/eris-ltd/thelonious/monkwire"
 )
 
 var (
@@ -31,39 +27,14 @@ var (
 	Logs        = path.Join(Decerver, "logs")
 	Modules     = path.Join(Decerver, "modules")
 	Scratch     = path.Join(Decerver, "scratch")
-    HEAD        = path.Join(Blockchains, "HEAD")
+	HEAD        = path.Join(Blockchains, "HEAD")
 	Refs        = path.Join(Blockchains, "refs")
-    Epm         = path.Join(Scratch, "epm")
-    Lllc        = path.Join(Scratch, "lllc")
+	Epm         = path.Join(Scratch, "epm")
+	Lllc        = path.Join(Scratch, "lllc")
 )
 
 var MajorDirs = []string{
-    Decerver, Apps, Blockchains, Filesystems, Logs, Modules, Scratch, Refs, Epm, Lllc,
-}
-
-func NewDatabase(dbName string) monkutil.Database {
-	db, err := monkdb.NewLDBDatabase(dbName)
-	if err != nil {
-		exit(err)
-	}
-	return db
-}
-
-func NewClientIdentity(clientIdentifier, version, customIdentifier string) *monkwire.SimpleClientIdentity {
-	return monkwire.NewSimpleClientIdentity(clientIdentifier, version, customIdentifier)
-}
-
-func NewKeyManager(KeyStore string, Datadir string, db monkutil.Database) *monkcrypto.KeyManager {
-	var keyManager *monkcrypto.KeyManager
-	switch {
-	case KeyStore == "db":
-		keyManager = monkcrypto.NewDBKeyManager(db)
-	case KeyStore == "file":
-		keyManager = monkcrypto.NewFileKeyManager(Datadir)
-	default:
-		exit(fmt.Errorf("unknown keystore type: %s", KeyStore))
-	}
-	return keyManager
+	Decerver, Apps, Blockchains, Filesystems, Logs, Modules, Scratch, Refs, Epm, Lllc,
 }
 
 func exit(err error) {
@@ -108,17 +79,6 @@ func openLogFile(Datadir string, filename string) *os.File {
 	return file
 }
 
-// compile LLL file into evm bytecode
-// returns hex
-func CompileLLL(filename string, literal bool) string {
-	code, err := monkutil.CompileLLL(filename, literal)
-	if err != nil {
-		fmt.Println("error compiling lll!", err)
-		return ""
-	}
-	return monkutil.Bytes2Hex(code)
-}
-
 // common golang, really?
 func Copy(src, dst string) error {
 	r, err := os.Open(src)
@@ -161,11 +121,13 @@ func InitDecerverDir() error {
 			return err
 		}
 	}
-	err := InitDataDir(path.Join(Blockchains, "refs"))
+	err := InitDataDir(Refs)
 	if err != nil {
 		return err
 	}
-	_, err = os.Create(path.Join(Blockchains, "HEAD"))
+	if _, err = os.Stat(HEAD); err != nil {
+		_, err = os.Create(HEAD)
+	}
 	return err
 }
 
@@ -191,21 +153,20 @@ func ChainIdFromName(name string) string {
 	return string(b)
 }
 
+func ResolveChain(chainType, name, chainId string) string {
+	var p string
+	idFromName := ChainIdFromName(name)
+	if idFromName != "" {
+		p = path.Join(Blockchains, chainType, idFromName)
+	} else if chainId != "" {
+		p = path.Join(Blockchains, chainType, chainId)
+	}
 
-func ResolveChain(chainType, name, chainId string) string{
-    var p string
-    idFromName := ChainIdFromName(name) 
-    if idFromName != ""{
-        p = path.Join(Blockchains, chainType, idFromName)
-    } else if chainId != ""{
-        p = path.Join(Blockchains, chainType, chainId)
-    }
-
-    _, err := os.Stat(p)
-    if err != nil{
-        return ""
-    }
-    return p
+	_, err := os.Stat(p)
+	if err != nil {
+		return ""
+	}
+	return p
 }
 
 // Maximum entries in the HEAD file
@@ -214,30 +175,59 @@ var MaxHead = 100
 // The HEAD file is a running list of the latest head
 // so we can go back if we mess up or forget
 func ChangeHead(head string) error {
-    b, err := ioutil.ReadFile(HEAD)
-    if err != nil{
-        return err
-    }
-    bspl := strings.Split(string(b), "\n")
-    var bsp string
-    if len(bspl) >= MaxHead{
-        bsp = strings.Join(bspl[:MaxHead-1], "\n")
-    } else{
-        bsp = string(b)
-    }
-    bsp = head+"\n"+bsp
-    err = ioutil.WriteFile(HEAD, []byte(bsp), 0644)
-    if err != nil{
-        return err
-    }
-    return nil
+	b, err := ioutil.ReadFile(HEAD)
+	if err != nil {
+		return err
+	}
+	bspl := strings.Split(string(b), "\n")
+	var bsp string
+	if len(bspl) >= MaxHead {
+		bsp = strings.Join(bspl[:MaxHead-1], "\n")
+	} else {
+		bsp = string(b)
+	}
+	bsp = head + "\n" + bsp
+	err = ioutil.WriteFile(HEAD, []byte(bsp), 0666)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Add a reference name to a chainId
 func AddRef(id, ref string) error {
-    _, err := os.Stat(path.Join(Refs, ref))
-    if err == nil{
-        return fmt.Errorf("Ref %s already exists", ref)
-    }
-    return ioutil.WriteFile(path.Join(Refs, ref), []byte(id), 0644)
+	_, err := os.Stat(path.Join(Refs, ref))
+	if err == nil {
+		return fmt.Errorf("Ref %s already exists", ref)
+	}
+	return ioutil.WriteFile(path.Join(Refs, ref), []byte(id), 0644)
+}
+
+// Return a list of chain references
+func GetRefs() (map[string]string, error) {
+	fs, err := ioutil.ReadDir(Refs)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]string)
+	for _, f := range fs {
+		name := f.Name()
+		b, err := ioutil.ReadFile(path.Join(Refs, name))
+		if err != nil {
+			return nil, err
+		}
+		m[name] = string(b)
+	}
+	return m, nil
+}
+
+// Get the current active chain
+func GetHead() (string, error) {
+	// TODO: only read the one line!
+	f, err := ioutil.ReadFile(HEAD)
+	if err != nil {
+		return "", err
+	}
+	fspl := strings.Split(string(f), "\n")
+	return fspl[0], nil
 }
