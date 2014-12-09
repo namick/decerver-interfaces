@@ -361,9 +361,7 @@ esl.ll = {
 	},
 	
 	"Tail" : function(addr, name){
-		Println("Tail");
 		var tail = esl.SA(addr, this.TailSlot(name));
-		Println("Tail gotten");
 		if(IsZero(tail)){
 			return null;
 		}
@@ -453,7 +451,6 @@ esl.ll = {
 	},
 	
 	"GetPairs" : function(addr, name){
-	   Println("Getting Pairs");
        var list = new Array();
        var current = this.Tail(addr, name);
        
@@ -495,10 +492,12 @@ esl.double = {
 	//Gets
 	"Value" : function(addr, name){
 		var values = [];
-		Println("Double value: " + addr);
 		Println("Double name: " + name);
+		Println("Double Slot: " + this.ValueSlot(name));
 		values.push(esl.SA(addr, this.ValueSlot(name)));
 		values.push(esl.SA(addr, this.ValueSlot2(name)));
+		Println("Double Values: " + values[0]);
+		Println("Double Converted: " + HexToString(values[0].slice(2)));
 		return values;
 	},
 };
@@ -521,7 +520,6 @@ esl.stdvar = {
 		var sha3 = SHA3(name);
 		var fact = Div(sha3, Exp("0x100", "24") );
 		var addr = Add(NSBase, Mul(fact,Exp("0x100", "23")) );
-		Println("Variable name to address: " + addr);
 		return addr;
 	},
 	
