@@ -231,7 +231,7 @@ esl.array = {
 	"CTS" : function(name, key){
 		return Add(esl.stdvar.Vari(name), Add(Mul(Mod(key, Exp("0x100", "20")), Exp("0x100", "3")), Exp("0x100","2")));
 	},
-	
+
 	"CTK" : function(slot){
 		return Mod(Div(slot, Exp("0x100","3")), Exp("0x100","20"));
 	},
@@ -243,21 +243,20 @@ esl.array = {
 	"MaxESlot" : function(name, key){
 		return Add(this.CTS(name, key),this.MaxEOffset);
 	},
-	
+
 	"StartSlot" : function(name, key){
 		return Add(this.CTS(name, key),this.StartOffset);
 	},
 
-	
 	//Gets
 	"ESize" : function(addr, name){
 		return esl.SA(addr, this.EsizeSlot(name));
 	},
-	
+
 	"MaxE" : function(addr, name, key){
 		return esl.SA(addr, this.MaxESlot(name, key));
 	},
-
+	
 	"Element" : function(addr, name, key, index){
 		var Esize = this.ESize(addr, name);
 		if(this.MaxE(addr, name, key) > index){
@@ -481,7 +480,6 @@ esl.single = {
 		return esl.SA(addr, this.ValueSlot(name));
 	},
 };
-
 
 esl.double = {
 	
