@@ -56,8 +56,10 @@ func main() {
 	*/
 	time.Sleep(time.Second * 5)
 	fmt.Println("calling get file...")
-	a, e := i.GetFile(h)
-	fmt.Println(string(a), e)
+	j := i.GetFile(h)
+	a := j["Data"]
+	e := j["Err"]
+	fmt.Println(a.(string), e)
 	i.Shutdown()
 }
 
