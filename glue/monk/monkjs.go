@@ -41,6 +41,22 @@ func (mjs *MonkJs) Shutdown() error {
 	return mjs.mm.Shutdown()
 }
 
+func (mjs *MonkJs) Restart() error {
+	err := mjs.Shutdown()
+	if err != nil {
+		return nil
+	}
+	return mjs.Start();
+}
+
+func (mjs *MonkJs) SetProperty(name string, data interface{}) {
+	
+}
+
+func (mjs *MonkJs) Property(name string) interface{} {
+	return nil
+}
+
 // ReadConfig and WriteConfig implemented in config.go
 
 // What module is this?
@@ -453,14 +469,19 @@ esl.ll = {
 	"GetPairs" : function(addr, name){
        var list = new Array();
        var current = this.Tail(addr, name);
+       Println("Getting Pairs...");
+       Println("TailPointer: " + current)
        
        while(current !== null){
            var pair = {};
            pair.Key = current;
            pair.Value = this.Main(addr, name, current);
+           Println("Key : Value: " + pair.Key + " : " + pair.Value);
            list.push(pair);
            current = this.Next(addr, name, current);
+           Println("Current: " + current);
        }
+       Println("Returning...")
        return list;
    },
 };
@@ -474,6 +495,9 @@ esl.single = {
 	
 	//Gets
 	"Value" : function(addr, name){
+		slotaddr = this.ValueSlot(name);
+		Println("Single Slot: " + slotaddr);
+		Println("Single Value: " + esl.SA(addr, slotaddr));
 		return esl.SA(addr, this.ValueSlot(name));
 	},
 };

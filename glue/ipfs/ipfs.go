@@ -115,6 +115,21 @@ func (mod *IpfsModule) Shutdown() error {
 	return nil
 }
 
+func (mod *IpfsModule) Restart() error {
+	err := mod.Shutdown()
+	if err != nil {
+		return nil
+	}
+	return mod.Start();
+}
+
+func (mod *IpfsModule) SetProperty(name string, data interface{}) {
+}
+
+func (mod *IpfsModule) Property(name string) interface{} {
+	return nil
+}
+
 func (mod *IpfsModule) ReadConfig(config_file string) {
 }
 

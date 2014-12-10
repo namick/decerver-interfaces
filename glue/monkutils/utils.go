@@ -10,7 +10,20 @@ import (
 	"github.com/eris-ltd/thelonious/monkwire"
 )
 
-func NewDatabase(dbName string) monkutil.Database {
+/*
+   ********** WARNING ************
+   THESE FUNCTIONS WILL FAIL ON ERR
+   ********************************
+*/
+
+func NewDatabase(dbName string, mem bool) monkutil.Database {
+	if mem {
+		db, err := monkdb.NewMemDatabase()
+		if err != nil {
+			exit(err)
+		}
+		return db
+	}
 	db, err := monkdb.NewLDBDatabase(dbName)
 	if err != nil {
 		exit(err)
