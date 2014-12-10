@@ -41,6 +41,22 @@ func (mjs *MonkJs) Shutdown() error {
 	return mjs.mm.Shutdown()
 }
 
+func (mjs *MonkJs) Restart() error {
+	err := mjs.Shutdown()
+	if err != nil {
+		return nil
+	}
+	return mjs.Start();
+}
+
+func (mjs *MonkJs) SetProperty(name string, data interface{}) {
+	
+}
+
+func (mjs *MonkJs) Property(name string) interface{} {
+	return nil
+}
+
 // ReadConfig and WriteConfig implemented in config.go
 
 // What module is this?

@@ -111,6 +111,10 @@ type FileSystem interface {
 	PushTree(fpath string, depth int) JsObject // string
 }
 
+type Compiler interface {
+	Compile(interface{}) JsObject
+}
+
 // Converts a data and an error value into a javascript ready object.
 // All methods on objects that modules bind to the js runtime should return
 // this.
