@@ -29,11 +29,15 @@ type (
 		Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error
 		Init() error
 		Start() error
+		Restart() error
 		Shutdown() error
 		Name() string
-		// TODO No
+		// TODO No channel here. Wait so that modules doesn't break.
 		Subscribe(name, event, target string) chan events.Event
 		UnSubscribe(name string)
+		
+		SetProperty(name string, data interface{})
+		Property(name string) interface{}
 	}
 
 	ModuleRegistry interface {
