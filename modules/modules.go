@@ -29,11 +29,15 @@ type (
 		Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error
 		Init() error
 		Start() error
+		Restart() error
 		Shutdown() error
 		Name() string
-		// TODO No
+		// TODO No channel here. Wait so that modules doesn't break.
 		Subscribe(name, event, target string) chan events.Event
 		UnSubscribe(name string)
+		
+		SetProperty(name string, data interface{})
+		Property(name string) interface{}
 	}
 
 	ModuleRegistry interface {
@@ -105,6 +109,10 @@ type FileSystem interface {
 	PushBlockString(block string) JsObject // string
 	PushFile(fpath string) JsObject // string
 	PushTree(fpath string, depth int) JsObject // string
+}
+
+type Compiler interface {
+	Compile(interface{}) JsObject
 }
 
 // Converts a data and an error value into a javascript ready object.

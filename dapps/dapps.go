@@ -1,14 +1,13 @@
 package dapps
 
 import (
- "encoding/json"
+	"encoding/json"
 )
 
 const (
-	PACKAGE_FILE_NAME = "package.json"
-	INDEX_FILE_NAME = "index.html"
+	PACKAGE_FILE_NAME  = "package.json"
+	INDEX_FILE_NAME    = "index.html"
 	MODELS_FOLDER_NAME = "models"
-	
 )
 
 // Structs that are mapped to the package file.
@@ -23,7 +22,7 @@ type (
 		Repository         *Repository         `json:"repository"`
 		Bugs               *Bugs               `json:"bugs"`
 		Licence            *Licence            `json:"licence"`
-		ModuleDependencies []*ModuleDependency `json:"moduleDependencies"`
+		ModuleDependencies []*ModuleDependency `json:"module_dependencies"`
 	}
 
 	Author struct {
@@ -46,14 +45,20 @@ type (
 	}
 
 	ModuleDependency struct {
-		Name    string `json:"name"`
-		Version string `json:"version"`
+		Name    string          `json:"name"`
+		Version string          `json:"version"`
+		Data    json.RawMessage `json:data`
+	}
+
+	MonkData struct {
+		ChainId        string `json:"chain_id"`
+		PeerServerAddress string `json:"peer_server_address"`
 	}
 )
 
 func NewPackageFileFromJson(pfJson []byte) (*PackageFile, error) {
 	pf := &PackageFile{}
-	err := json.Unmarshal(pfJson,pf)
+	err := json.Unmarshal(pfJson, pf)
 	if err != nil {
 		return nil, err
 	}

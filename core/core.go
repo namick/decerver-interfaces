@@ -44,6 +44,7 @@ type RuntimeManager interface {
 }
 
 type Runtime interface {
+	Shutdown();
 	BindScriptObject(name string, val interface{}) error
 	LoadScriptFile(fileName string) error
 	LoadScriptFiles(fileName ...string) error
