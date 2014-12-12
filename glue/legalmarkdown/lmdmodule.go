@@ -1,12 +1,15 @@
 package legalmarkdown
 
 import (
+	"fmt"
 	"github.com/eris-ltd/legalmarkdown/lmd"
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
+	"github.com/eris-ltd/decerver-interfaces/modules"
 )
 
 type LmdApi struct {
+	name string
 }
 
 // pass two strings after reading a template file and an optional
@@ -16,8 +19,14 @@ type LmdApi struct {
 //
 // the returned string will be a PDF which can be written or
 // displayed by an PDF reader.
-func (lmda *LmdApi) Parse(contents string, params string) string {
-	return lmd.RawMarkdownToPDF(contents, params)
+func (lmda *LmdApi) Parse(contents, params string) modules.JsObject {
+	fmt.Println("Contents: " + contents);
+	fmt.Println("Params: " + params);
+	res := lmd.RawMarkdownToPDF(contents,params)
+	fmt.Println("Nice... " + res)
+	
+	//return modules.JsReturnValNoErr(res);
+	return nil
 }
 
 // implements decerver-interface module
@@ -31,6 +40,7 @@ func NewLmdModule() *LmdModule {
 }
 
 func (mod *LmdModule) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
+	rm.RegisterApiObject("lmd",mod.api)
 	return nil
 }
 
