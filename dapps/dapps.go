@@ -51,10 +51,37 @@ type (
 	}
 
 	MonkData struct {
+		RootContract string `json:"root_contract"`
 		ChainId        string `json:"chain_id"`
 		PeerServerAddress string `json:"peer_server_address"`
 	}
 )
+
+type DappInfo struct {
+		Name               string              `json:"name"`
+		Id                 string              `json:"id"`
+		Icon               string              `json:"app_icon"`
+		Version            string              `json:"version"`
+		Homepage           string              `json:"homepage"`
+		Author             *Author             `json:"author"`
+		Repository         *Repository         `json:"repository"`
+		Bugs               *Bugs               `json:"bugs"`
+		Licence            *Licence            `json:"licence"`
+}
+
+func DappInfoFromPackageFile(pf *PackageFile) *DappInfo {
+	di := &DappInfo{}
+	di.Author = pf.Author
+	di.Bugs = pf.Bugs
+	di.Homepage = pf.Homepage
+	di.Icon = pf.Icon
+	di.Id = pf.Id
+	di.Licence = pf.Licence
+	di.Name = pf.Name
+	di.Repository = pf.Repository
+	di.Version = pf.Version
+	return di
+}
 
 func NewPackageFileFromJson(pfJson []byte) (*PackageFile, error) {
 	pf := &PackageFile{}

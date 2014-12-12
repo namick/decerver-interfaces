@@ -29,12 +29,12 @@ func (mjs *MonkJs) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg eve
 // it may or may not already have an ethereum instance
 // basically gives you a pipe, local keyMang, and reactor
 func (mjs *MonkJs) Init() error {
-	return mjs.mm.Init()
+	return nil // mjs.mm.Init()
 }
 
 // start the ethereum node
 func (mjs *MonkJs) Start() error {
-	return mjs.mm.Start()
+	return nil // mjs.mm.Start()
 }
 
 func (mjs *MonkJs) Shutdown() error {
@@ -43,10 +43,14 @@ func (mjs *MonkJs) Shutdown() error {
 
 func (mjs *MonkJs) Restart() error {
 	err := mjs.Shutdown()
+	
 	if err != nil {
 		return nil
 	}
-	return mjs.Start();
+	mjs.mm = monk.NewMonk(nil)
+	mjs.mm.Init()
+	err2 := mjs.mm.Start()
+	return err2
 }
 
 func (mjs *MonkJs) SetProperty(name string, data interface{}) {

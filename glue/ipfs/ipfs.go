@@ -87,7 +87,7 @@ func (mod *IpfsModule) Init() error {
 		return mod.Init()
 	}
 
-	u.SetLogLevel("*", "critical") //logLevels[mod.Config.LogLevel])
+	u.SetLogLevel("*", "debug") //logLevels[mod.Config.LogLevel])
 
 	/*if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
 		return nil, err
