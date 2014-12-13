@@ -19,7 +19,7 @@ type LmdApi struct {
 //
 // the returned string will be a PDF which can be written or
 // displayed by an PDF reader.
-func (lmda *LmdApi) Parse(contents, params string) modules.JsObject {
+func (lmda *LmdApi) Compile(contents, params string) modules.JsObject {
 	fmt.Println("Contents: " + contents);
 	fmt.Println("Params: " + params);
 	res := lmd.RawMarkdownToPDF(contents,params)
