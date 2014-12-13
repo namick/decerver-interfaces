@@ -16,14 +16,14 @@ type DeCerver interface {
 	ReadConfig(filename string)
 	WriteConfig(cfg *DCConfig)
 	GetConfig() *DCConfig
-	GetPaths() FileIO
+	GetFileIO() FileIO
 	IsStarted() bool
 }
 
 type FileIO interface {
 	Root() string
 	Log() string
-	Apps() string
+	Dapps() string
 	Blockchains() string
 	Filesystems() string
 	Modules() string

@@ -10,6 +10,12 @@ const (
 	MODELS_FOLDER_NAME = "models"
 )
 
+type Dapp interface {
+	GetModels() []string
+	GetPath() string
+	GetPackageFile() *PackageFile
+}
+
 // Structs that are mapped to the package file.
 type (
 	PackageFile struct {
@@ -90,4 +96,9 @@ func NewPackageFileFromJson(pfJson []byte) (*PackageFile, error) {
 		return nil, err
 	}
 	return pf, nil
+}
+
+type DappRegistry interface {
+	GetDappList() []*DappInfo
+	LoadDapp(dappId string) error
 }
