@@ -14,20 +14,20 @@ import (
 	decore "github.com/eris-ltd/decerver-interfaces/core"
 	events "github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/modules"
-	blocks "github.com/jbenet/go-ipfs/blocks"
-	commands "github.com/jbenet/go-ipfs/commands"
-	config "github.com/jbenet/go-ipfs/config"
-	core "github.com/jbenet/go-ipfs/core"
-	cmds "github.com/jbenet/go-ipfs/core/commands"
-	mdag "github.com/jbenet/go-ipfs/merkledag"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
-	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
-	u "github.com/jbenet/go-ipfs/util"
-	util "github.com/jbenet/go-ipfs/util"
-	//b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-base58"
-	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	blocks "github.com/eris-ltd/go-ipfs/blocks"
+	commands "github.com/eris-ltd/go-ipfs/commands"
+	config "github.com/eris-ltd/go-ipfs/config"
+	core "github.com/eris-ltd/go-ipfs/core"
+	cmds "github.com/eris-ltd/go-ipfs/core/commands"
+	mdag "github.com/eris-ltd/go-ipfs/merkledag"
+	uio "github.com/eris-ltd/go-ipfs/unixfs/io"
+	ftpb "github.com/eris-ltd/go-ipfs/unixfs/pb"
+	u "github.com/eris-ltd/go-ipfs/util"
+	util "github.com/eris-ltd/go-ipfs/util"
+	//b58 "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/github.com/eris-ltd/go-base58"
+	context "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	proto "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	mh "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 var (
@@ -106,7 +106,7 @@ func (mod *IpfsModule) Start() error {
 }
 
 // TODO: UDP socket won't close
-// https://github.com/jbenet/go-ipfs/issues/389
+// https://github.com/eris-ltd/go-ipfs/issues/389
 func (mod *IpfsModule) Shutdown() error {
 	if n := mod.ipfs.node.Network; n != nil {
 		n.Close()

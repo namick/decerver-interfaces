@@ -8,16 +8,16 @@ import (
 	"path"
 	fp "path/filepath"
 
-	cmds "github.com/jbenet/go-ipfs/commands"
-	core "github.com/jbenet/go-ipfs/core"
-	ccmds "github.com/jbenet/go-ipfs/core/commands"
-	importer "github.com/jbenet/go-ipfs/importer"
-	dag "github.com/jbenet/go-ipfs/merkledag"
-	pinning "github.com/jbenet/go-ipfs/pin"
-	ft "github.com/jbenet/go-ipfs/unixfs"
-	uio "github.com/jbenet/go-ipfs/unixfs/io"
+	cmds "github.com/eris-ltd/go-ipfs/commands"
+	core "github.com/eris-ltd/go-ipfs/core"
+	ccmds "github.com/eris-ltd/go-ipfs/core/commands"
+	importer "github.com/eris-ltd/go-ipfs/importer"
+	dag "github.com/eris-ltd/go-ipfs/merkledag"
+	pinning "github.com/eris-ltd/go-ipfs/pin"
+	ft "github.com/eris-ltd/go-ipfs/unixfs"
+	uio "github.com/eris-ltd/go-ipfs/unixfs/io"
 
-	"github.com/jbenet/go-ipfs/importer/chunk"
+	"github.com/eris-ltd/go-ipfs/importer/chunk"
 )
 
 // Much of this fucntionality used to be exported from go-ipfs
