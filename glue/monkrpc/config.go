@@ -157,7 +157,7 @@ func (mod *MonkRpcModule) rConfig() {
 	}
 
 	if monkutil.Config.Db == nil {
-		monkutil.Config.Db = mutils.NewDatabase(mod.Config.DbName)
+		monkutil.Config.Db = mutils.NewDatabase(mod.Config.DbName, false)
 	}
 
 	// TODO: enhance this with more pkg level control
