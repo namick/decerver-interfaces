@@ -17,6 +17,7 @@ type DeCerver interface {
 	WriteConfig(cfg *DCConfig)
 	GetConfig() *DCConfig
 	GetPaths() FileIO
+	IsStarted() bool
 }
 
 type FileIO interface {

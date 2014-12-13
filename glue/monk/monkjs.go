@@ -29,12 +29,12 @@ func (mjs *MonkJs) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg eve
 // it may or may not already have an ethereum instance
 // basically gives you a pipe, local keyMang, and reactor
 func (mjs *MonkJs) Init() error {
-	return mjs.mm.Init()
+	return nil // mjs.mm.Init()
 }
 
 // start the ethereum node
 func (mjs *MonkJs) Start() error {
-	return mjs.mm.Start()
+	return nil // mjs.mm.Start()
 }
 
 func (mjs *MonkJs) Shutdown() error {
@@ -43,10 +43,14 @@ func (mjs *MonkJs) Shutdown() error {
 
 func (mjs *MonkJs) Restart() error {
 	err := mjs.Shutdown()
+	
 	if err != nil {
 		return nil
 	}
-	return mjs.Start();
+	mjs.mm = monk.NewMonk(nil)
+	mjs.mm.Init()
+	err2 := mjs.mm.Start()
+	return err2
 }
 
 func (mjs *MonkJs) SetProperty(name string, data interface{}) {
@@ -247,7 +251,7 @@ esl.array = {
 	"CTS" : function(name, key){
 		return Add(esl.stdvar.Vari(name), Add(Mul(Mod(key, Exp("0x100", "20")), Exp("0x100", "3")), Exp("0x100","2")));
 	},
-	
+
 	"CTK" : function(slot){
 		return Mod(Div(slot, Exp("0x100","3")), Exp("0x100","20"));
 	},
@@ -259,21 +263,20 @@ esl.array = {
 	"MaxESlot" : function(name, key){
 		return Add(this.CTS(name, key),this.MaxEOffset);
 	},
-	
+
 	"StartSlot" : function(name, key){
 		return Add(this.CTS(name, key),this.StartOffset);
 	},
 
-	
 	//Gets
 	"ESize" : function(addr, name){
 		return esl.SA(addr, this.EsizeSlot(name));
 	},
-	
+
 	"MaxE" : function(addr, name, key){
 		return esl.SA(addr, this.MaxESlot(name, key));
 	},
-
+	
 	"Element" : function(addr, name, key, index){
 		var Esize = this.ESize(addr, name);
 		if(this.MaxE(addr, name, key) > index){
@@ -502,7 +505,6 @@ esl.single = {
 		return esl.SA(addr, this.ValueSlot(name));
 	},
 };
-
 
 esl.double = {
 	
