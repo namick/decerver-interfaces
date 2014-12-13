@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/eris-ltd/decerver-interfaces/glue/utils"
-	"github.com/ethereum/go-ethereum/ethutil"
+	"github.com/eris-ltd/go-ethereum/ethutil"
 	"io"
 	"io/ioutil"
 	"os"
