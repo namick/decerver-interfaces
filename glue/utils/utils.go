@@ -152,48 +152,71 @@ func ChainIdFromName(name string) string {
 	return string(b)
 }
 
-func ResolveChain(chainType, name, chainId string) (string, error) {
-    switch chainType {
-    case "thel", "thelonious", "monk":
-        chainType = "thelonious"
-    case "btc", "bitcoin":
-        chainType = "bitcoin"
-    case "eth", "ethereum":
-        chainType = "ethereum"
-    case "gen", "genesis":
-        chainType = "thelonious"
-    default:
-        return "", fmt.Errorf("Unknown chain type: ", chainType)
-    }
+func ResolveChainId(chainType, name, chainId string) (string, error) {
+	switch chainType {
+	case "thel", "thelonious", "monk":
+		chainType = "thelonious"
+	case "btc", "bitcoin":
+		chainType = "bitcoin"
+	case "eth", "ethereum":
+		chainType = "ethereum"
+	case "gen", "genesis":
+		chainType = "thelonious"
+	default:
+		return "", fmt.Errorf("Unknown chain type: ", chainType)
+	}
 
 	var p string
 	idFromName := ChainIdFromName(name)
 	if idFromName != "" {
-		p = path.Join(Blockchains, chainType, idFromName)
-	} else if chainId != "" {
-		p = path.Join(Blockchains, chainType, chainId)
-        if _, err := os.Stat(p); err != nil{
-            // see if its a prefix of a chainId
-            fs, _ := ioutil.ReadDir(path.Join(Blockchains, chainType))
-            found := false
-            for _, f := range fs{
-                if strings.HasPrefix(f.Name(), chainId){
-                    if found{
-                        return "", fmt.Errorf("ChainId collision! Multiple chains begin with %s. Please be more specific", chainId)
-                    }
-                    p = path.Join(Blockchains, chainType, f.Name())
-                    found = true
-                }
-            }
-        }
+		chainId = idFromName
 	}
 
-    if _, err := os.Stat(p); err != nil{
-        return "", fmt.Errorf("Could not locate chain by name %s or by id %s", name, chainId)
-    }
+	if chainId != "" {
+		p = path.Join(Blockchains, chainType, chainId)
+		if _, err := os.Stat(p); err != nil {
+			// see if its a prefix of a chainId
+			id, err := findPrefixMatch(path.Join(Blockchains, chainType), chainId)
+			if err != nil {
+				return "", err
+			}
+			p = path.Join(Blockchains, chainType, id)
+			chainId = id
+		}
+	}
+	if _, err := os.Stat(p); err != nil {
+		return "", fmt.Errorf("Could not locate chain by name %s or by id %s", name, chainId)
+	}
 
-    return p, nil
+	return chainId, nil
 
+}
+
+func ResolveChain(chainType, name, chainId string) (string, error) {
+	id, err := ResolveChainId(chainType, name, chainId)
+	if err != nil {
+		return "", err
+	}
+	return path.Join(Blockchains, chainType, id), nil
+}
+
+func findPrefixMatch(dirPath, prefix string) (string, error) {
+	fs, _ := ioutil.ReadDir(dirPath)
+	found := false
+	var p string
+	for _, f := range fs {
+		if strings.HasPrefix(f.Name(), prefix) {
+			if found {
+				return "", fmt.Errorf("ChainId collision! Multiple chains begin with %s. Please be more specific", prefix)
+			}
+			p = f.Name() //path.Join(Blockchains, chainType, f.Name())
+			found = true
+		}
+	}
+	if !found {
+		return "", fmt.Errorf("ChainId %s did not match any known chains", prefix)
+	}
+	return p, nil
 }
 
 // Maximum entries in the HEAD file
@@ -202,6 +225,11 @@ var MaxHead = 100
 // The HEAD file is a running list of the latest head
 // so we can go back if we mess up or forget
 func ChangeHead(head string) error {
+	head, err := ResolveChainId("thelonious", head, head)
+	if err != nil {
+		return err
+	}
+
 	b, err := ioutil.ReadFile(HEAD)
 	if err != nil {
 		return err
@@ -227,6 +255,16 @@ func AddRef(id, ref string) error {
 	if err == nil {
 		return fmt.Errorf("Ref %s already exists", ref)
 	}
+
+	dataDir := path.Join(Blockchains, "thelonious")
+	_, err = os.Stat(path.Join(dataDir, id))
+	if err != nil {
+		id, err = findPrefixMatch(dataDir, id)
+		if err != nil {
+			return err
+		}
+	}
+
 	return ioutil.WriteFile(path.Join(Refs, ref), []byte(id), 0644)
 }
 
