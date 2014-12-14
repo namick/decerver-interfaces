@@ -58,7 +58,7 @@ type (
 
 	MonkData struct {
 		RootContract      string `json:"root_contract"`
-		ChainId           string `json:"chain_id"`
+		ChainId           string `json:"blockchain_id"`
 		PeerServerAddress string `json:"peer_server_address"`
 	}
 )
