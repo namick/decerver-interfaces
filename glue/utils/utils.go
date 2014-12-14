@@ -104,7 +104,6 @@ func InitDataDir(Datadir string) error {
 	_, err := os.Stat(Datadir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("Creating directory: '%s'\n", Datadir)
 			err := os.MkdirAll(Datadir, 0777)
 			if err != nil {
 				return err
@@ -153,20 +152,48 @@ func ChainIdFromName(name string) string {
 	return string(b)
 }
 
-func ResolveChain(chainType, name, chainId string) string {
+func ResolveChain(chainType, name, chainId string) (string, error) {
+    switch chainType {
+    case "thel", "thelonious", "monk":
+        chainType = "thelonious"
+    case "btc", "bitcoin":
+        chainType = "bitcoin"
+    case "eth", "ethereum":
+        chainType = "ethereum"
+    case "gen", "genesis":
+        chainType = "thelonious"
+    default:
+        return "", fmt.Errorf("Unknown chain type: ", chainType)
+    }
+
 	var p string
 	idFromName := ChainIdFromName(name)
 	if idFromName != "" {
 		p = path.Join(Blockchains, chainType, idFromName)
 	} else if chainId != "" {
 		p = path.Join(Blockchains, chainType, chainId)
+        if _, err := os.Stat(p); err != nil{
+            // see if its a prefix of a chainId
+            fs, _ := ioutil.ReadDir(path.Join(Blockchains, chainType))
+            found := false
+            for _, f := range fs{
+                if strings.HasPrefix(f.Name(), chainId){
+                    if found{
+                        return "", fmt.Errorf("ChainId collision! Multiple chains begin with %s. Please be more specific", chainId)
+                    }
+                    p = path.Join(Blockchains, chainType, f.Name())
+                    found = true
+                }
+            }
+        }
 	}
 
-	_, err := os.Stat(p)
-	if err != nil {
-		return ""
-	}
-	return p
+    if _, err := os.Stat(p); err != nil{
+        return "", fmt.Errorf("Could not locate chain by name %s or by id %s", name, chainId)
+    }
+
+    return p, nil
+
 }
 
 // Maximum entries in the HEAD file
