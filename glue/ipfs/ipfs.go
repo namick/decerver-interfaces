@@ -120,7 +120,7 @@ func (mod *IpfsModule) Restart() error {
 	if err != nil {
 		return nil
 	}
-	return mod.Start();
+	return mod.Start()
 }
 
 func (mod *IpfsModule) SetProperty(name string, data interface{}) {

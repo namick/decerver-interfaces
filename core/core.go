@@ -28,6 +28,7 @@ type FileIO interface {
 	Filesystems() string
 	Modules() string
 	System() string
+	Adminpages() string
 	// Useful when you want to load a file inside of a directory gotten by the
 	// 'Paths' object. Reads and returns the bytes.
 	ReadFile(directory, name string) ([]byte, error)
@@ -45,7 +46,7 @@ type RuntimeManager interface {
 }
 
 type Runtime interface {
-	Shutdown();
+	Shutdown()
 	BindScriptObject(name string, val interface{}) error
 	LoadScriptFile(fileName string) error
 	LoadScriptFiles(fileName ...string) error
@@ -55,5 +56,5 @@ type Runtime interface {
 }
 
 func NewLogger(name string) *log.Logger {
-	return log.New(os.Stdout,"[" + name + "] ", log.LstdFlags)
+	return log.New(os.Stdout, "["+name+"] ", log.LstdFlags)
 }

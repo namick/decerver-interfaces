@@ -1,4 +1,5 @@
 package blockchain
+
 /*
 import (
 	"fmt"
@@ -135,7 +136,7 @@ func getBlockMiniFromBlock(chain modules.Blockchain, reply *modules.BlockMini, b
 		reply.AccountsAffected[ctr] = am
 		ctr++
 	}
-	
+
 	// Block PrevHash
 	if block.PrevHash != "" && block.PrevHash != ZeroHash160 {
 		reply.PrevHash = block.PrevHash

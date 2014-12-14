@@ -1,4 +1,5 @@
 package blockchain
+
 /*
 
 // This handles socket-based rpc. Part of it is reacting to requests sent from the
@@ -60,7 +61,7 @@ type WebSocketAPI struct {
 
 // Create a new handler
 func newWebSocketAPI(bc modules.Blockchain) *WebSocketAPI {
-	
+
 	bcAPI := &WebSocketAPI{}
 	bcAPI.bc = bc
 	bcAPI.blockQueue = util.NewBlockMiniQueue()
@@ -180,7 +181,7 @@ func (bcAPI *WebSocketAPI) NewAddress(req *api.Request, resp *api.Response) {
 }
 
 func (bcAPI *WebSocketAPI) SetAddress(req *api.Request, resp *api.Response) {
-	
+
 	params := &modules.VString{}
 	err := json.Unmarshal(*req.Params, params)
 
@@ -188,11 +189,11 @@ func (bcAPI *WebSocketAPI) SetAddress(req *api.Request, resp *api.Response) {
 		resp.Error = err.Error()
 		return
 	}
-	
+
 	retVal := &modules.VString{}
 	// TODO Replace with pipe
 	err = bcAPI.bc.SetAddress(params.SVal)
-	
+
 	if err != nil {
 		retVal.SVal = err.Error()
 	}
@@ -436,7 +437,7 @@ func newBcListener(bcAPI *WebSocketAPI) *BcListener {
 				block, _ := evt.Resource.(*modules.Block)
 				if block == nil {
 					continue;
-				} 
+				}
 				fmt.Println("Block added")
 				resp := &api.Response{}
 				resp.Id = "BlockAdded"

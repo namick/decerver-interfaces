@@ -21,7 +21,7 @@ var (
 
 	usr, _      = user.Current() // error?!
 	Decerver    = path.Join(usr.HomeDir, ".decerver")
-	Apps        = path.Join(Decerver, "apps")
+	Apps        = path.Join(Decerver, "dapps")
 	Blockchains = path.Join(Decerver, "blockchains")
 	Filesystems = path.Join(Decerver, "filesystems")
 	Logs        = path.Join(Decerver, "logs")

@@ -11,8 +11,8 @@ import (
 
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
-	"github.com/eris-ltd/decerver-interfaces/modules"
 	mutils "github.com/eris-ltd/decerver-interfaces/glue/monkutils"
+	"github.com/eris-ltd/decerver-interfaces/modules"
 
 	"github.com/eris-ltd/thelonious/monkchain"
 	"github.com/eris-ltd/thelonious/monkcrypto"

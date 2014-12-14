@@ -8,14 +8,21 @@ import (
 	"github.com/eris-ltd/thelonious/monk"
 )
 
+type TempProps struct {
+	ChainId string
+	RemoteHost string
+	RemotePort int
+}
+
 // implements decerver-interfaces Module
 type MonkJs struct {
 	mm *monk.MonkModule
+	temp *TempProps
 }
 
 func NewMonkJs() *MonkJs {
 	monkModule := monk.NewMonk(nil)
-	return &MonkJs{monkModule}
+	return &MonkJs{monkModule, &TempProps{}}
 }
 
 // register the module with the decerver javascript vm
@@ -43,17 +50,53 @@ func (mjs *MonkJs) Shutdown() error {
 
 func (mjs *MonkJs) Restart() error {
 	err := mjs.Shutdown()
-	
+
 	if err != nil {
 		return nil
 	}
 	mjs.mm = monk.NewMonk(nil)
+	
+	// Inject the config:
+	mjs.mm.SetProperty("ChainId",mjs.temp.ChainId)
+	mjs.mm.SetProperty("RemoteHost",mjs.temp.RemoteHost)
+	mjs.mm.SetProperty("RemotePort",mjs.temp.RemotePort)
+	
 	mjs.mm.Init()
+	
 	err2 := mjs.mm.Start()
+	
+	mjs.temp.ChainId = ""
+	mjs.temp.RemoteHost = ""
+	mjs.temp.RemotePort = 0
+	
 	return err2
 }
 
 func (mjs *MonkJs) SetProperty(name string, data interface{}) {
+	if(name == "ChainId"){
+		dt, dtok := data.(string)
+		if !dtok {
+			fmt.Println("Setting property 'ChainId' to an undefined value. Should be string");
+			return
+		}
+		mjs.temp.ChainId = dt; 
+	} else if(name == "RemoteHost"){
+		dt2, dtok2 := data.(string)
+		if !dtok2 {
+			fmt.Println("Setting property 'RemoteHost' to an undefined value. Should be string");
+			return
+		}
+		mjs.temp.RemoteHost = dt2; 
+	} else if(name == "RemotePort"){
+		dt3, dtok3 := data.(int)
+		if !dtok3 {
+			fmt.Println("Setting property 'RemotePort' to an undefined value. Should be int");
+			return
+		}
+		mjs.temp.RemotePort = dt3; 
+	} else {
+		fmt.Println("Setting undefined property.");
+	}
 	
 }
 
@@ -97,14 +140,14 @@ func (mjs *MonkJs) Account(target string) modules.JsObject {
 	return modules.JsReturnVal(modules.ToMap(mjs.mm.Account(target)), nil)
 }
 
-func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject  {
+func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject {
 	ret := mjs.mm.StorageAt(target, storage)
-	if ret == "" || ret == "0x"{
+	if ret == "" || ret == "0x" {
 		ret = "0x0"
 	} else {
 		ret = "0x" + ret
 	}
-	
+
 	return modules.JsReturnVal(ret, nil)
 }
 
@@ -296,7 +339,7 @@ esl.array = {
 	},
 };
 
-esl.keyvalue = {
+esl.kv = {
 
 	"CTS" : function(name, key){
 		return Add(esl.stdvar.Vari(name), Add(Mul(Mod(key, Exp("0x100", "20")), Exp("0x100", "3")), Exp("0x100","2")));
@@ -335,7 +378,6 @@ esl.ll = {
 
 	// Structure
 	"TailSlot" : function(name){
-		Println("TailSlot");
 		return Add(esl.stdvar.VariBase(name), this.TailSlotOffset);
 	},
 	
@@ -449,43 +491,137 @@ esl.ll = {
 	},
 
 	//Gets the whole list. Note the separate function which gets the keys
-	"GetList" : function(addr, name){
+	"GetList" : function(addr, name, num){
 		var list = [];
 		var current = this.Tail(addr, name);
-		while(current !== null){
-			list.push(this.Main(addr, name, current));
-			current = this.Next(addr, name, current);
-		}
+		
+
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+				list.push(this.Main(addr, name, current));
+				current = this.Next(addr, name, current);
+			}
+
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(this.Main(addr, name, current));
+				current = this.Next(addr, name, current);
+	           c = c - 1;
+	       }
+       }
 
 		return list;
 	},
 
-	"GetKeys" : function(addr, name){
+	"GetKeys" : function(addr, name, num){
 		var keys = [];
 		var current = this.Tail(addr, name);
-		while(current !== null){
-			list.push(current);
-			current = this.Next(addr, name, current);
-		}
+		
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+				list.push(current);
+				current = this.Next(addr, name, current);
+			}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(current);
+				current = this.Next(addr, name, current);
+	           c = c - 1;
+	       }
+       }
 		return keys;
 	},
 	
-	"GetPairs" : function(addr, name){
+	"GetPairs" : function(addr, name, num){
        var list = new Array();
        var current = this.Tail(addr, name);
-       Println("Getting Pairs...");
-       Println("TailPointer: " + current)
        
-       while(current !== null){
-           var pair = {};
-           pair.Key = current;
-           pair.Value = this.Main(addr, name, current);
-           Println("Key : Value: " + pair.Key + " : " + pair.Value);
-           list.push(pair);
-           current = this.Next(addr, name, current);
-           Println("Current: " + current);
+        if(typeof(num)=="undefined"){
+       		while(current !== null){
+       			var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Next(addr, name, current);
+       		}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Next(addr, name, current);
+	           c = c - 1;
+	       }
        }
-       Println("Returning...")
+       return list;
+   },
+
+   "GetListRev" : function(addr, name, num){
+		var list = [];
+		var current = this.Head(addr, name);
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+	       		list.push(this.Main(addr, name, current));
+				current = this.Prev(addr, name, current);
+			}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(this.Main(addr, name, current));
+				current = this.Prev(addr, name, current);
+	           c = c - 1;
+	       }
+       }
+
+		return list;
+	},
+
+	"GetKeysRev" : function(addr, name, num){
+		var keys = [];
+		var current = this.Head(addr, name);
+
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+       			list.push(current);
+				current = this.Prev(addr, name, current);
+			}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(current);
+				current = this.Prev(addr, name, current);
+	            c = c - 1;
+	       }
+       }
+		return keys;
+	},
+	
+	"GetPairsRev" : function(addr, name, num){
+       var list = new Array();
+       var current = this.Head(addr, name);
+       if(typeof(num)=="undefined"){
+       		while(current !== null){
+	           var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Prev(addr, name, current);
+	       }
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+	           var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Prev(addr, name, current);
+	           c = c - 1;
+	       }
+       }
        return list;
    },
 };
@@ -500,8 +636,6 @@ esl.single = {
 	//Gets
 	"Value" : function(addr, name){
 		slotaddr = this.ValueSlot(name);
-		Println("Single Slot: " + slotaddr);
-		Println("Single Value: " + esl.SA(addr, slotaddr));
 		return esl.SA(addr, this.ValueSlot(name));
 	},
 };
@@ -520,12 +654,8 @@ esl.double = {
 	//Gets
 	"Value" : function(addr, name){
 		var values = [];
-		Println("Double name: " + name);
-		Println("Double Slot: " + this.ValueSlot(name));
 		values.push(esl.SA(addr, this.ValueSlot(name)));
 		values.push(esl.SA(addr, this.ValueSlot2(name)));
-		Println("Double Values: " + values[0]);
-		Println("Double Converted: " + HexToString(values[0].slice(2)));
 		return values;
 	},
 };
