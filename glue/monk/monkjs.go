@@ -296,7 +296,7 @@ esl.array = {
 	},
 };
 
-esl.keyvalue = {
+esl.kv = {
 
 	"CTS" : function(name, key){
 		return Add(esl.stdvar.Vari(name), Add(Mul(Mod(key, Exp("0x100", "20")), Exp("0x100", "3")), Exp("0x100","2")));
@@ -335,7 +335,6 @@ esl.ll = {
 
 	// Structure
 	"TailSlot" : function(name){
-		Println("TailSlot");
 		return Add(esl.stdvar.VariBase(name), this.TailSlotOffset);
 	},
 	
@@ -449,43 +448,137 @@ esl.ll = {
 	},
 
 	//Gets the whole list. Note the separate function which gets the keys
-	"GetList" : function(addr, name){
+	"GetList" : function(addr, name, num){
 		var list = [];
 		var current = this.Tail(addr, name);
-		while(current !== null){
-			list.push(this.Main(addr, name, current));
-			current = this.Next(addr, name, current);
-		}
+		
+
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+				list.push(this.Main(addr, name, current));
+				current = this.Next(addr, name, current);
+			}
+
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(this.Main(addr, name, current));
+				current = this.Next(addr, name, current);
+	           c = c - 1;
+	       }
+       }
 
 		return list;
 	},
 
-	"GetKeys" : function(addr, name){
+	"GetKeys" : function(addr, name, num){
 		var keys = [];
 		var current = this.Tail(addr, name);
-		while(current !== null){
-			list.push(current);
-			current = this.Next(addr, name, current);
-		}
+		
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+				list.push(current);
+				current = this.Next(addr, name, current);
+			}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(current);
+				current = this.Next(addr, name, current);
+	           c = c - 1;
+	       }
+       }
 		return keys;
 	},
 	
-	"GetPairs" : function(addr, name){
+	"GetPairs" : function(addr, name, num){
        var list = new Array();
        var current = this.Tail(addr, name);
-       Println("Getting Pairs...");
-       Println("TailPointer: " + current)
        
-       while(current !== null){
-           var pair = {};
-           pair.Key = current;
-           pair.Value = this.Main(addr, name, current);
-           Println("Key : Value: " + pair.Key + " : " + pair.Value);
-           list.push(pair);
-           current = this.Next(addr, name, current);
-           Println("Current: " + current);
+        if(typeof(num)=="undefined"){
+       		while(current !== null){
+       			var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Next(addr, name, current);
+       		}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Next(addr, name, current);
+	           c = c - 1;
+	       }
        }
-       Println("Returning...")
+       return list;
+   },
+
+   "GetListRev" : function(addr, name, num){
+		var list = [];
+		var current = this.Head(addr, name);
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+	       		list.push(this.Main(addr, name, current));
+				current = this.Prev(addr, name, current);
+			}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(this.Main(addr, name, current));
+				current = this.Prev(addr, name, current);
+	           c = c - 1;
+	       }
+       }
+
+		return list;
+	},
+
+	"GetKeysRev" : function(addr, name, num){
+		var keys = [];
+		var current = this.Head(addr, name);
+
+		if(typeof(num)=="undefined"){
+       		while(current !== null){
+       			list.push(current);
+				current = this.Prev(addr, name, current);
+			}
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+       			list.push(current);
+				current = this.Prev(addr, name, current);
+	            c = c - 1;
+	       }
+       }
+		return keys;
+	},
+	
+	"GetPairsRev" : function(addr, name, num){
+       var list = new Array();
+       var current = this.Head(addr, name);
+       if(typeof(num)=="undefined"){
+       		while(current !== null){
+	           var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Prev(addr, name, current);
+	       }
+       }else{
+       		var c = num;
+       		while(current !== null && (c > 0)){
+	           var pair = {};
+	           pair.Key = current;
+	           pair.Value = this.Main(addr, name, current);
+	           list.push(pair);
+	           current = this.Prev(addr, name, current);
+	           c = c - 1;
+	       }
+       }
        return list;
    },
 };
@@ -500,8 +593,6 @@ esl.single = {
 	//Gets
 	"Value" : function(addr, name){
 		slotaddr = this.ValueSlot(name);
-		Println("Single Slot: " + slotaddr);
-		Println("Single Value: " + esl.SA(addr, slotaddr));
 		return esl.SA(addr, this.ValueSlot(name));
 	},
 };
@@ -520,12 +611,8 @@ esl.double = {
 	//Gets
 	"Value" : function(addr, name){
 		var values = [];
-		Println("Double name: " + name);
-		Println("Double Slot: " + this.ValueSlot(name));
 		values.push(esl.SA(addr, this.ValueSlot(name)));
 		values.push(esl.SA(addr, this.ValueSlot2(name)));
-		Println("Double Values: " + values[0]);
-		Println("Double Converted: " + HexToString(values[0].slice(2)));
 		return values;
 	},
 };
