@@ -2,8 +2,7 @@ package network
 
 // Since most networking takes place inside the js runtime, this is
 // not used a lot.
-import (
-)
+import ()
 
 // Websocket rpc
 type WsSession interface {
@@ -11,7 +10,6 @@ type WsSession interface {
 	WriteJsonMsg(msg interface{})
 	WriteCloseMsg()
 }
-
 
 // Webserver
 type Server interface {

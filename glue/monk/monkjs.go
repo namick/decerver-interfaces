@@ -43,7 +43,7 @@ func (mjs *MonkJs) Shutdown() error {
 
 func (mjs *MonkJs) Restart() error {
 	err := mjs.Shutdown()
-	
+
 	if err != nil {
 		return nil
 	}
@@ -54,7 +54,7 @@ func (mjs *MonkJs) Restart() error {
 }
 
 func (mjs *MonkJs) SetProperty(name string, data interface{}) {
-	
+
 }
 
 func (mjs *MonkJs) Property(name string) interface{} {
@@ -97,14 +97,14 @@ func (mjs *MonkJs) Account(target string) modules.JsObject {
 	return modules.JsReturnVal(modules.ToMap(mjs.mm.Account(target)), nil)
 }
 
-func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject  {
+func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject {
 	ret := mjs.mm.StorageAt(target, storage)
-	if ret == "" || ret == "0x"{
+	if ret == "" || ret == "0x" {
 		ret = "0x0"
 	} else {
 		ret = "0x" + ret
 	}
-	
+
 	return modules.JsReturnVal(ret, nil)
 }
 

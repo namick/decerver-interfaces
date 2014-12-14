@@ -2,10 +2,9 @@ package util
 
 import (
 	"container/list"
-	"sync"
 	"github.com/eris-ltd/decerver-interfaces/modules"
+	"sync"
 )
-
 
 // A concurrent queue implementation for *BlockMiniData objects. This is not a
 // performance bottleneck, so working with a list is fine.
@@ -14,7 +13,7 @@ type BlockMiniQueue struct {
 	queue *list.List
 }
 
-func NewBlockMiniQueue() *BlockMiniQueue{
+func NewBlockMiniQueue() *BlockMiniQueue {
 	bmq := &BlockMiniQueue{}
 	bmq.queue = list.New()
 	bmq.mutex = &sync.Mutex{}

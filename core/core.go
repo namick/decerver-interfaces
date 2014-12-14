@@ -46,7 +46,7 @@ type RuntimeManager interface {
 }
 
 type Runtime interface {
-	Shutdown();
+	Shutdown()
 	BindScriptObject(name string, val interface{}) error
 	LoadScriptFile(fileName string) error
 	LoadScriptFiles(fileName ...string) error
@@ -56,5 +56,5 @@ type Runtime interface {
 }
 
 func NewLogger(name string) *log.Logger {
-	return log.New(os.Stdout,"[" + name + "] ", log.LstdFlags)
+	return log.New(os.Stdout, "["+name+"] ", log.LstdFlags)
 }
