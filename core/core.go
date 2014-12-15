@@ -28,7 +28,6 @@ type FileIO interface {
 	Filesystems() string
 	Modules() string
 	System() string
-	Adminpages() string
 	// Useful when you want to load a file inside of a directory gotten by the
 	// 'Paths' object. Reads and returns the bytes.
 	ReadFile(directory, name string) ([]byte, error)

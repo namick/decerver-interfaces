@@ -71,7 +71,7 @@ func (mod *IpfsModule) Init() error {
 	// if non-existant, initialize ipfs
 	// on the machine
 	mod.ipfs.cfg, err = config.Load(filename)
-
+	
 	if err != nil {
 		if strings.Contains(err.Error(), "init") {
 			c := exec.Command("ipfs", "init", "-d="+mod.Config.RootDir)
@@ -98,9 +98,8 @@ func (mod *IpfsModule) Init() error {
 func (mod *IpfsModule) Start() error {
 	n, err := core.NewIpfsNode(mod.ipfs.cfg, mod.Config.Online) //config, online
 	if err != nil {
-		return err
+		return err;
 	}
-
 	mod.ipfs.node = n
 	return nil
 }
@@ -111,7 +110,6 @@ func (mod *IpfsModule) Shutdown() error {
 	if n := mod.ipfs.node.Network; n != nil {
 		n.Close()
 	}
-	mod.ipfs.node.Close()
 	return nil
 }
 
@@ -157,7 +155,7 @@ func (mod *IpfsModule) Push(cmd string, params ...string) modules.JsObject {
 }
 
 func (mod *IpfsModule) GetBlock(hash string) modules.JsObject {
-	data, err := mod.ipfs.GetFile(hash)
+	data, err := mod.ipfs.GetBlock(hash)
 	if err != nil {
 		modules.JsReturnValErr(err)
 	}
@@ -285,7 +283,10 @@ func (ipfs *Ipfs) GetBlock(hash string) ([]byte, error) {
 		return nil, err
 	}
 	k := util.Key(h)
+	
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
+	fmt.Printf("IPFS STUFF: node: %v\n",ipfs.node)
+	fmt.Printf("IPFS STUFF: Blocks: %v\n",ipfs.node.Blocks)
 	b, err := ipfs.node.Blocks.GetBlock(ctx, k)
 	if err != nil {
 		return nil, fmt.Errorf("block get: %v", err)

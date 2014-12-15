@@ -8,6 +8,7 @@ const (
 	PACKAGE_FILE_NAME  = "package.json"
 	INDEX_FILE_NAME    = "index.html"
 	MODELS_FOLDER_NAME = "models"
+	LOADING_ORDER_FILE_NAME = "config.json"
 )
 
 type Dapp interface {
@@ -73,6 +74,10 @@ type DappInfo struct {
 	Repository *Repository `json:"repository"`
 	Bugs       *Bugs       `json:"bugs"`
 	Licence    *Licence    `json:"licence"`
+}
+
+type LoadOrderConfig struct {
+	LoadingOrder []string `json:"loading_order"`
 }
 
 func DappInfoFromPackageFile(pf *PackageFile) *DappInfo {
