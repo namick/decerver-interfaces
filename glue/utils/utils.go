@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/eris-ltd/decerver-interfaces/dapps"
 	"github.com/eris-ltd/thelonious/monklog"
 )
 
@@ -145,24 +146,72 @@ func WriteJson(config interface{}, config_file string) error {
 }
 
 func ChainIdFromName(name string) string {
-	b, err := ioutil.ReadFile(path.Join(Blockchains, "refs", name))
+	refsPath := path.Join(Blockchains, "refs", name)
+	b, err := ioutil.ReadFile(refsPath)
 	if err != nil {
 		return ""
 	}
 	return string(b)
 }
 
-func ResolveChainId(chainType, name, chainId string) (string, error) {
+func CheckGetPackageFile(dappDir string) (*dapps.PackageFile, error) {
+	if _, err := os.Stat(dappDir); err != nil {
+		return nil, fmt.Errorf("Dapp %s not found", dappDir)
+	}
+
+	b, err := ioutil.ReadFile(path.Join(dappDir, "package.json"))
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := dapps.NewPackageFileFromJson(b)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func ChainIdFromDapp(dapp string) (string, error) {
+	p, err := CheckGetPackageFile(path.Join(Apps, dapp))
+	if err != nil {
+		return "", err
+	}
+
+	var chainId string
+	for _, dep := range p.ModuleDependencies {
+		if dep.Name == "monk" {
+			d := &dapps.MonkData{}
+			if err := json.Unmarshal(dep.Data, d); err != nil {
+				return "", err
+			}
+			chainId = d.ChainId
+		}
+	}
+	if chainId == "" {
+		return "", fmt.Errorf("Dapp is missing monk dependency or chainId!")
+	}
+
+	return chainId, nil
+}
+
+func ResolveChainType(chainType string) string {
 	switch chainType {
 	case "thel", "thelonious", "monk":
-		chainType = "thelonious"
+		return "thelonious"
 	case "btc", "bitcoin":
-		chainType = "bitcoin"
+		return "bitcoin"
 	case "eth", "ethereum":
-		chainType = "ethereum"
+		return "ethereum"
 	case "gen", "genesis":
-		chainType = "thelonious"
-	default:
+		return "thelonious"
+	}
+	return ""
+}
+
+// Determines the chainId from a chainId prefix or from a ref, but not from a dapp
+func ResolveChainId(chainType, name, chainId string) (string, error) {
+	chainType = ResolveChainType(chainType)
+	if chainType == "" {
 		return "", fmt.Errorf("Unknown chain type: ", chainType)
 	}
 

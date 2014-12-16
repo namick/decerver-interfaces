@@ -91,6 +91,10 @@ func (mod *MonkRpcModule) Shutdown() error {
 	return mod.client.Close()
 }
 
+func (mod *MonkRpcModule) WaitForShutdown() {
+
+}
+
 // What module is this?
 func (mod *MonkRpcModule) Name() string {
 	return "genblock"

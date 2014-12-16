@@ -96,6 +96,10 @@ func (mod *GenBlockModule) Shutdown() error {
 	return nil
 }
 
+func (mod *GenBlockModule) WaitForShutdown() {
+
+}
+
 // What module is this?
 func (mod *GenBlockModule) Name() string {
 	return "genblock"

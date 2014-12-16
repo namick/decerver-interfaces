@@ -9,14 +9,14 @@ import (
 )
 
 type TempProps struct {
-	ChainId string
+	ChainId    string
 	RemoteHost string
 	RemotePort int
 }
 
 // implements decerver-interfaces Module
 type MonkJs struct {
-	mm *monk.MonkModule
+	mm   *monk.MonkModule
 	temp *TempProps
 }
 
@@ -55,49 +55,49 @@ func (mjs *MonkJs) Restart() error {
 		return nil
 	}
 	mjs.mm = monk.NewMonk(nil)
-	
+
 	// Inject the config:
-	mjs.mm.SetProperty("ChainId",mjs.temp.ChainId)
-	mjs.mm.SetProperty("RemoteHost",mjs.temp.RemoteHost)
-	mjs.mm.SetProperty("RemotePort",mjs.temp.RemotePort)
-	
+	mjs.mm.SetProperty("ChainId", mjs.temp.ChainId)
+	mjs.mm.SetProperty("RemoteHost", mjs.temp.RemoteHost)
+	mjs.mm.SetProperty("RemotePort", mjs.temp.RemotePort)
+
 	mjs.mm.Init()
-	
+
 	err2 := mjs.mm.Start()
-	
+
 	mjs.temp.ChainId = ""
 	mjs.temp.RemoteHost = ""
 	mjs.temp.RemotePort = 0
-	
+
 	return err2
 }
 
 func (mjs *MonkJs) SetProperty(name string, data interface{}) {
-	if(name == "ChainId"){
+	if name == "ChainId" {
 		dt, dtok := data.(string)
 		if !dtok {
-			fmt.Println("Setting property 'ChainId' to an undefined value. Should be string");
+			fmt.Println("Setting property 'ChainId' to an undefined value. Should be string")
 			return
 		}
-		mjs.temp.ChainId = dt; 
-	} else if(name == "RemoteHost"){
+		mjs.temp.ChainId = dt
+	} else if name == "RemoteHost" {
 		dt2, dtok2 := data.(string)
 		if !dtok2 {
-			fmt.Println("Setting property 'RemoteHost' to an undefined value. Should be string");
+			fmt.Println("Setting property 'RemoteHost' to an undefined value. Should be string")
 			return
 		}
-		mjs.temp.RemoteHost = dt2; 
-	} else if(name == "RemotePort"){
+		mjs.temp.RemoteHost = dt2
+	} else if name == "RemotePort" {
 		dt3, dtok3 := data.(int)
 		if !dtok3 {
-			fmt.Println("Setting property 'RemotePort' to an undefined value. Should be int");
+			fmt.Println("Setting property 'RemotePort' to an undefined value. Should be int")
 			return
 		}
-		mjs.temp.RemotePort = dt3; 
+		mjs.temp.RemotePort = dt3
 	} else {
-		fmt.Println("Setting undefined property.");
+		fmt.Println("Setting undefined property.")
 	}
-	
+
 }
 
 func (mjs *MonkJs) Property(name string) interface{} {

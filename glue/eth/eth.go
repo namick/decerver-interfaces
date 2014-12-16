@@ -137,6 +137,10 @@ func (mod *EthModule) Shutdown() error {
 	return nil
 }
 
+func (mod *EthModule) WaitForShutdown() {
+	mod.eth.ethereum.WaitForShutdown()
+}
+
 // ReadConfig and WriteConfig implemented in config.go
 
 // What module is this?
