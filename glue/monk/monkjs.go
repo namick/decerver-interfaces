@@ -125,19 +125,19 @@ func (mjs *MonkJs) UnSubscribe(name string) {
 
 func (mjs *MonkJs) WorldState() modules.JsObject {
 	ws := mjs.mm.WorldState()
-	return modules.JsReturnVal(modules.ToMap(ws), nil)
+	return modules.JsReturnVal(ws, nil)
 }
 
 func (mjs *MonkJs) State() modules.JsObject {
-	return modules.JsReturnVal(modules.ToMap(mjs.mm.State()), nil)
+	return modules.JsReturnVal(mjs.mm.State(), nil)
 }
 
 func (mjs *MonkJs) Storage(target string) modules.JsObject {
-	return modules.JsReturnVal(modules.ToMap(mjs.mm.Storage(target)), nil)
+	return modules.JsReturnVal(mjs.mm.Storage(target), nil)
 }
 
 func (mjs *MonkJs) Account(target string) modules.JsObject {
-	return modules.JsReturnVal(modules.ToMap(mjs.mm.Account(target)), nil)
+	return modules.JsReturnVal(mjs.mm.Account(target), nil)
 }
 
 func (mjs *MonkJs) StorageAt(target, storage string) modules.JsObject {
@@ -160,7 +160,7 @@ func (mjs *MonkJs) LatestBlock() modules.JsObject {
 }
 
 func (mjs *MonkJs) Block(hash string) modules.JsObject {
-	return modules.JsReturnVal(modules.ToMap(mjs.mm.Block(hash)), nil)
+	return modules.JsReturnVal(mjs.mm.Block(hash), nil)
 }
 
 func (mjs *MonkJs) IsScript(target string) modules.JsObject {

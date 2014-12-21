@@ -3,6 +3,7 @@ package modules
 import (
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
+	"github.com/eris-ltd/decerver-interfaces/types"
 )
 
 type JsObject map[string]interface{}
@@ -124,7 +125,7 @@ func JsReturnVal(data interface{}, err error) JsObject {
 		ret["Data"] = nil
 	} else {
 		ret["Error"] = ""
-		ret["Data"] = data
+		ret["Data"] = types.ToJsValue(data)
 	}
 	return ret
 }
@@ -133,7 +134,7 @@ func JsReturnVal(data interface{}, err error) JsObject {
 func JsReturnValNoErr(data interface{}) JsObject {
 	ret := make(JsObject)
 	ret["Error"] = ""
-	ret["Data"] = data
+	ret["Data"] = types.ToJsValue(data)
 	return ret
 }
 

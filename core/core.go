@@ -34,6 +34,9 @@ type FileIO interface {
 	// Useful when you want to save a file into a directory gotten by the 'Paths'
 	// object.
 	WriteFile(directory, name string, data []byte) error
+	
+	CreateModuleDirectory(moduleName string) error
+	CreateDirectory(dir string) error
 }
 
 type RuntimeManager interface {

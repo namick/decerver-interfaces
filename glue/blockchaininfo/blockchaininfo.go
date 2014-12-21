@@ -17,6 +17,20 @@ import (
 	"github.com/qedus/blockchain"
 )
 
+type BciConfig struct {
+	GUID           string `json:"guid"`
+	Password       string `json:"password"`
+	SecondPassword string `json:"second_password"`
+	APICode        string `json:"api_code"`
+}
+
+var DefaultConfig = &BciConfig{
+	GUID:           "",
+	Password:       "",
+	SecondPassword: "",
+	APICode:        "",
+}
+
 // BlkChainInfo is the main struct for the blockchain.info API module.
 type BlkChainInfo struct {
 	BciApi    *blockchain.BlockChain
@@ -44,7 +58,8 @@ func NewBlkChainInfo() *BlkChainInfo {
 
 // Register sets the module config settings and returns nile
 func (b *BlkChainInfo) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
-	b.config = path.Join(fileIO.Modules(), "blockchain", "config")
+	b.config = path.Join(fileIO.Modules(), "blockchaininfo", "config")
+	rm.RegisterApiObject("bci", b)
 	return nil
 }
 
@@ -60,22 +75,25 @@ func (b *BlkChainInfo) Init() error {
 	b.chans = make(map[string]chan events.Event)
 	b.addressesPolled = make(map[string]string)
 
+	var bciCfg *BciConfig
 	// read the config file
 	cfg, err := ioutil.ReadFile(b.config)
 	if err != nil {
-		return err
+		fmt.Println("BlockchainInfo: config not found - resorting to defaults: " + err.Error())
+		bciCfg = DefaultConfig
+	} else {
+		// use the config file to establish the right settings for the API wrapper
+		bciCfg = &BciConfig{}
+		err = json.Unmarshal(cfg, bciCfg)
+		if err != nil {
+			fmt.Println("BlockchainInfo: config malformed - resorting to defaults: " + err.Error())
+			bciCfg = DefaultConfig
+		}
+		b.BciApi.GUID = bciCfg.GUID
+		b.BciApi.Password = bciCfg.Password
+		b.BciApi.SecondPassword = bciCfg.SecondPassword
+		b.BciApi.APICode = bciCfg.APICode
 	}
-
-	// use the config file to establish the right settings for the API wrapper
-	bciCfg := make(map[string]string)
-	err = json.Unmarshal(cfg, bciCfg)
-	if err != nil {
-		return err
-	}
-	b.BciApi.GUID = bciCfg["guid"]
-	b.BciApi.Password = bciCfg["password"]
-	b.BciApi.SecondPassword = bciCfg["second_password"]
-	b.BciApi.APICode = bciCfg["api_code"]
 
 	// sets the address list.
 	var a1 *blockchain.AddressList
@@ -84,8 +102,9 @@ func (b *BlkChainInfo) Init() error {
 		if err := b.BciApi.Request(a1); err != nil {
 			return err
 		}
+		bciAccountListToDecerverAccountList(a1, b.Addresses)
 	}
-	bciAccountListToDecerverAccountList(a1, b.Addresses)
+	
 
 	// sets the channels map
 	b.chans = make(map[string]chan events.Event)
@@ -104,8 +123,18 @@ func (b *BlkChainInfo) Shutdown() error {
 	for addr := range b.addressesPolled {
 		b.stopPollAddresses(addr)
 	}
-
+	
 	return nil
+}
+
+// Shutdown simply stops any pollers
+func (b *BlkChainInfo) Restart() error {
+	b.Shutdown()
+	errInit := b.Init()
+	if errInit != nil {
+		return errInit
+	}
+	return b.Start()
 }
 
 // Name returns the name of the module: "blockchaininfo"
@@ -113,109 +142,11 @@ func (b *BlkChainInfo) Name() string {
 	return "blockchaininfo"
 }
 
-/*
-
-   blockchain functions to satisfy interface. see:
-       * https://github.com/eris-ltd/decerver-interfaces/blob/master/modules/blockchain.go
-       * https://github.com/eris-ltd/decerver-interfaces/blob/master/modules/modules.go
-
-*/
-
-// WorldState is not supported
-func (b *BlkChainInfo) WorldState() *modules.WorldState {
-	return &modules.WorldState{}
+func (b *BlkChainInfo) SetProperty(name string, data interface{}) {
 }
 
-// State is not supported
-func (b *BlkChainInfo) State() *modules.State {
-	return &modules.State{}
-}
-
-// Storage is not supported
-func (b *BlkChainInfo) Storage(target string) *modules.Storage {
-	return &modules.Storage{}
-}
-
-// Account queries the address passed to it, and translates the received object from the API
-// wrapper into an appropriate struct to be consumed by the deCerver.
-func (b *BlkChainInfo) Account(target string) *modules.Account {
-	a1 := &blockchain.Address{Address: target}
-	if err := b.BciApi.Request(a1); err != nil {
-		log.Print(err)
-	}
-	a2 := &modules.Account{}
-	bciAccountToDecerverAccount(a1, a2)
-	return a2
-}
-
-// StorageAt is not supported by this module
-func (b *BlkChainInfo) StorageAt(target, storage string) string {
-	return ""
-}
-
-// BlockCount returns the block Height which blockchain.info reports
-func (b *BlkChainInfo) BlockCount() int {
-	block := &blockchain.LatestBlock{}
-	if err := b.BciApi.Request(block); err != nil {
-		log.Print(err)
-	}
-	return int(block.Height)
-}
-
-// LatestBlock returns the hash of the most recent block
-func (b *BlkChainInfo) LatestBlock() string {
-	block := &blockchain.LatestBlock{}
-	if err := b.BciApi.Request(block); err != nil {
-		log.Print(err)
-	}
-	return block.Hash
-}
-
-// Block queries blockchain.info for a block by the blockhash and then translates the
-// struct received from the API wrapper into a struct which can be consumed by the decerver as
-// a normal blockchain module block struct.
-func (b *BlkChainInfo) Block(hash string) *modules.Block {
-	b1 := &blockchain.Block{Hash: hash}
-	if err := b.BciApi.Request(b1); err != nil {
-		log.Print(err)
-	}
-	b2 := &modules.Block{}
-	bciBlocksToDecerverBlocks(b1, b2)
-	return b2
-}
-
-// IsScript will always return false as no target address on the BTC chain will be a script address
-func (b *BlkChainInfo) IsScript(target string) bool {
-	return false
-}
-
-// Tx sends a transfer. Note that if the user has two factor authentication on in their blockchain.info
-// account, the blockchain.info API will not allow transactions.
-func (b *BlkChainInfo) Tx(addr, amt string) (string, error) {
-	amtt, err := strconv.Atoi(amt)
-	if err != nil {
-		return "", err
-	}
-	sp := &blockchain.SendPayment{
-		Amount:    int64(amtt),
-		ToAddress: addr,
-	}
-	if err = b.BciApi.Request(sp); err != nil {
-		return "", err
-	} else {
-		return sp.TransactionHash, nil
-	}
-	return "", nil
-}
-
-// Msg not supported by this module which is an API Wrapper around Blockchain.info
-func (b *BlkChainInfo) Msg(addr string, data []string) (string, error) {
-	return "", nil
-}
-
-// Script not supported by this module which is an API Wrapper around Blockchain.info
-func (b *BlkChainInfo) Script(file, lang string) (string, error) {
-	return "", nil
+func (b *BlkChainInfo) Property(name string) interface{} {
+	return nil
 }
 
 // Subscribe establishes long polling functions for either "newBlock" or "addr", "tx"
@@ -247,6 +178,106 @@ func (b *BlkChainInfo) UnSubscribe(name string) {
 	}
 }
 
+/*
+
+   blockchain functions to satisfy interface. see:
+       * https://github.com/eris-ltd/decerver-interfaces/blob/master/modules/blockchain.go
+       * https://github.com/eris-ltd/decerver-interfaces/blob/master/modules/modules.go
+
+*/
+
+// WorldState is not supported
+func (b *BlkChainInfo) WorldState() modules.JsObject {
+	return modules.JsReturnValNoErr(nil)
+}
+
+// State is not supported
+func (b *BlkChainInfo) State() modules.JsObject {
+	return modules.JsReturnValNoErr(nil)
+}
+
+// Storage is not supported
+func (b *BlkChainInfo) Storage(target string) modules.JsObject {
+	return modules.JsReturnValNoErr(nil)
+}
+
+// Account queries the address passed to it, and translates the received object from the API
+// wrapper into an appropriate struct to be consumed by the deCerver.
+func (b *BlkChainInfo) Account(target string) modules.JsObject {
+	return modules.JsReturnValNoErr(b.account(target))
+}
+
+// StorageAt is not supported by this module
+func (b *BlkChainInfo) StorageAt(target, storage string) modules.JsObject {
+	return modules.JsReturnValNoErr("")
+}
+
+// BlockCount returns the block Height which blockchain.info reports
+func (b *BlkChainInfo) BlockCount() modules.JsObject {
+	block := &blockchain.LatestBlock{}
+	if err := b.BciApi.Request(block); err != nil {
+		log.Print(err)
+		return modules.JsReturnValErr(err)
+	}
+	return modules.JsReturnValNoErr(int(block.Height))
+}
+
+// LatestBlock returns the hash of the most recent block
+func (b *BlkChainInfo) LatestBlock() modules.JsObject {
+	lblock, err := b.latestBlock()
+	if err != nil {
+		return modules.JsReturnValErr(err)
+	}
+	return modules.JsReturnValNoErr(lblock.Hash)
+}
+
+// Block queries blockchain.info for a block by the blockhash and then translates the
+// struct received from the API wrapper into a struct which can be consumed by the decerver as
+// a normal blockchain module block struct.
+func (b *BlkChainInfo) Block(hash string) modules.JsObject {
+	b1 := &blockchain.Block{Hash: hash}
+	if err := b.BciApi.Request(b1); err != nil {
+		log.Print(err)
+		modules.JsReturnValErr(err)
+	}
+	b2 := &modules.Block{}
+	bciBlocksToDecerverBlocks(b1, b2)
+	return modules.JsReturnValNoErr(b2)
+}
+
+// IsScript will always return false as no target address on the BTC chain will be a script address
+func (b *BlkChainInfo) IsScript(target string) modules.JsObject {
+	return modules.JsReturnValNoErr(false)
+}
+
+// Tx sends a transfer. Note that if the user has two factor authentication on in their blockchain.info
+// account, the blockchain.info API will not allow transactions.
+func (b *BlkChainInfo) Tx(addr, amt string) modules.JsObject {
+	amtt, err := strconv.Atoi(amt)
+	if err != nil {
+		return modules.JsReturnValErr(err)
+	}
+	sp := &blockchain.SendPayment{
+		Amount:    int64(amtt),
+		ToAddress: addr,
+	}
+	if err = b.BciApi.Request(sp); err != nil {
+		return modules.JsReturnValErr(err)
+	} else {
+		return modules.JsReturnValNoErr(sp.TransactionHash)
+	}
+}
+
+// Msg not supported by this module which is an API Wrapper around Blockchain.info
+func (b *BlkChainInfo) Msg(addr string, data []string) modules.JsObject {
+	return modules.JsReturnValNoErr("")
+}
+
+// Script not supported by this module which is an API Wrapper around Blockchain.info
+func (b *BlkChainInfo) Script(file, lang string) modules.JsObject {
+	return modules.JsReturnValNoErr("")
+}
+
 // Commit not supported by this module which is an API Wrapper around Blockchain.info
 func (b *BlkChainInfo) Commit() {}
 
@@ -254,8 +285,8 @@ func (b *BlkChainInfo) Commit() {}
 func (b *BlkChainInfo) AutoCommit(toggle bool) {}
 
 // IsAutocommit not supported by this module which is an API Wrapper around Blockchain.info
-func (b *BlkChainInfo) IsAutocommit() bool {
-	return false
+func (b *BlkChainInfo) IsAutocommit() modules.JsObject {
+	return modules.JsReturnValNoErr(false)
 }
 
 /*
@@ -265,50 +296,66 @@ func (b *BlkChainInfo) IsAutocommit() bool {
        * https://github.com/eris-ltd/decerver-interfaces/blob/master/modules/modules.go
 
 */
-func (b *BlkChainInfo) ActiveAddress() string {
-	return b.Addresses.ActiveAddress
+func (b *BlkChainInfo) ActiveAddress() modules.JsObject {
+	return modules.JsReturnValNoErr(b.Addresses.ActiveAddress)
 }
 
-func (b *BlkChainInfo) Address(n int) (string, error) {
-	if b.Addresses.AddressList[n] != "" {
-		return b.Addresses.AddressList[n], nil
-	} else {
-		return "", fmt.Errorf("Address does not exist at that index.")
-	}
-	return "", nil
-}
-
-func (b *BlkChainInfo) SetAddress(addr string) error {
-	for _, add := range b.Addresses.AddressList {
-		if addr == add {
-			b.Addresses.ActiveAddress = addr
-			return nil
+// Removing these for now, as we need to switch to getting the entire list of addresses
+// (we want to avoid passing weird otto numbers to the functions until we get conversion
+// conversion sorted out, it's hard to know what type the number will be)
+func (b *BlkChainInfo) Address(n int) modules.JsObject {
+	/*
+		if b.Addresses.AddressList[n] != "" {
+			return b.Addresses.AddressList[n], nil
+		} else {
+			return "", fmt.Errorf("Address does not exist at that index.")
 		}
-	}
-	return fmt.Errorf("Requested address does not exist in Address List.")
+		return "", nil
+	*/
+	return modules.JsReturnValErr(fmt.Errorf("Not supported"))
 }
 
-func (b *BlkChainInfo) SetAddressN(n int) error {
-	if n >= len(b.Addresses.AddressList) {
-		return fmt.Errorf("Address does not exist at that index.")
-	}
-	b.Addresses.ActiveAddress = b.Addresses.AddressList[n]
-	return nil
+// Same as above
+func (b *BlkChainInfo) SetAddress(addr string) modules.JsObject {
+	/*
+		for _, add := range b.Addresses.AddressList {
+			if addr == add {
+				b.Addresses.ActiveAddress = addr
+				return nil
+			}
+		}
+		return fmt.Errorf("Requested address does not exist in Address List.")
+	*/
+	return modules.JsReturnValErr(fmt.Errorf("Not supported"))
 }
 
-func (b *BlkChainInfo) NewAddress(set bool) string {
+// Same as above
+func (b *BlkChainInfo) SetAddressN(n int) modules.JsObject {
+	/*
+		if n >= len(b.Addresses.AddressList) {
+			return fmt.Errorf("Address does not exist at that index.")
+		}
+		b.Addresses.ActiveAddress = b.Addresses.AddressList[n]
+		return nil
+	*/
+	return modules.JsReturnValErr(fmt.Errorf("Not supported"))
+}
+
+func (b *BlkChainInfo) NewAddress(set bool) modules.JsObject {
 	na := &blockchain.NewAddress{Label: "via-decerver"}
 	if err := b.BciApi.Request(na); err != nil {
 		log.Print(err)
+		return modules.JsReturnValErr(err)
+
 	}
 	if set {
 		b.SetAddress(na.Address)
 	}
-	return na.Address
+	return modules.JsReturnValNoErr(na.Address)
 }
 
-func (b *BlkChainInfo) AddressCount() int {
-	return len(b.Addresses.AddressList)
+func (b *BlkChainInfo) AddressCount() modules.JsObject {
+	return modules.JsReturnValNoErr(len(b.Addresses.AddressList))
 }
 
 /*
@@ -384,15 +431,38 @@ func (b *BlkChainInfo) stopPollBlocks() {
 	b.pollBlocks <- true
 }
 
+func (b *BlkChainInfo) latestBlock() (*blockchain.LatestBlock, error) {
+	block := &blockchain.LatestBlock{}
+	if err := b.BciApi.Request(block); err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	return block, nil
+
+}
+
+func (b *BlkChainInfo) account(target string) *modules.Account {
+	a1 := &blockchain.Address{Address: target}
+	if err := b.BciApi.Request(a1); err != nil {
+		log.Print(err)
+	}
+	a2 := &modules.Account{}
+	bciAccountToDecerverAccount(a1, a2)
+	return a2
+}
+
 func (b *BlkChainInfo) pollBlock(ticker *time.Ticker) {
 	fmt.Println("[blockchain.info mod] Starting New Block Poller.")
-	b.mostRecentBlock = b.LatestBlock()
+	lb, _ := b.latestBlock()
+	// TODO should be more error checking here.
+	b.mostRecentBlock = lb.Hash
 	var rec string
 	for {
 		select {
 		case <-ticker.C:
 			fmt.Println("[blockchain.info mod] Polling for new block.")
-			rec = b.LatestBlock()
+			lblock, _ := b.latestBlock()
+			rec = lblock.Hash
 			if rec != b.mostRecentBlock {
 				b.mostRecentBlock = rec
 				b2 := b.Block(rec)
@@ -440,7 +510,7 @@ func (b *BlkChainInfo) stopPollAddresses(addr string) {
 func (b *BlkChainInfo) pollAddress(ticker *time.Ticker) {
 	fmt.Println("[blockchain.info mod] Starting New Address Poller.")
 	for addr := range b.addressesPolled {
-		b.addressesPolled[addr] = b.Account(addr).Nonce
+		b.addressesPolled[addr] = b.account(addr).Nonce
 	}
 	rec := make(map[string]string)
 	for {
@@ -448,7 +518,7 @@ func (b *BlkChainInfo) pollAddress(ticker *time.Ticker) {
 		case <-ticker.C:
 			fmt.Println("[blockchain.info mod] Polling Address(es).")
 			for addr := range b.addressesPolled {
-				rec[addr] = b.Account(addr).Nonce
+				rec[addr] = b.account(addr).Nonce
 			}
 			for addr := range b.addressesPolled {
 				if rec[addr] != b.addressesPolled[addr] {

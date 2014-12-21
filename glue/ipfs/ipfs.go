@@ -74,7 +74,7 @@ func (mod *IpfsModule) Init() error {
 	
 	if err != nil {
 		if strings.Contains(err.Error(), "init") {
-			c := exec.Command("ipfs", "init", "-d="+mod.Config.RootDir)
+			c := exec.Command("ipfs", "init", "-d=" + mod.Config.RootDir)
 			c.Stdout = os.Stdout
 			err := c.Run()
 			if err != nil {
