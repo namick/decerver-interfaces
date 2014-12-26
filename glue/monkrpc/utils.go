@@ -76,6 +76,11 @@ func (mod *MonkRpcModule) rpcLocalTxCall(args monkrpc.NewTxArgs) (string, error)
 	return mod.rpcTxCall("Transact", args)
 }
 
+// Send a create to the local server
+func (mod *MonkRpcModule) rpcLocalCreateCall(args monkrpc.NewTxArgs) (string, error) {
+	return mod.rpcTxCall("Create", args)
+}
+
 // Send a tx to the remote server
 func (mod *MonkRpcModule) rpcRemoteTxCall(args monkrpc.PushTxArgs) (string, error) {
 	return mod.rpcTxCall("PushTx", args)
