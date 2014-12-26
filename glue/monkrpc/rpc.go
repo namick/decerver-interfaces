@@ -83,6 +83,7 @@ func (mod *MonkRpcModule) Start() error {
 		os.Exit(0)
 	}
 	mod.client = client
+    logger.Infoln("Started")
 
 	return nil
 }
@@ -189,6 +190,7 @@ func (mod *MonkRpcModule) Msg(addr string, data []string) (string, error) {
 
 // Deploy a new contract.
 func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
+    logger.Debugln("Deploying script: ", file)
 	var scriptHex string
 	if lang == "lll-literal" {
 		scriptHex = mutils.CompileLLL(file, true)
@@ -206,7 +208,7 @@ func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
 
 	if mod.Config.Local {
 		args := mod.newLocalTx("", VALUE, GAS, GASPRICE, scriptHex)
-		return mod.rpcLocalTxCall(args)
+		return mod.rpcLocalCreateCall(args)
 	}
 	keys := mod.keyManager.KeyPair()
 	args := mod.newRemoteTx(keys, "", VALUE, GAS, GASPRICE, scriptHex)

@@ -2,6 +2,7 @@ package modules
 
 import "fmt"
 
+// JS structs
 type (
 	NoArgs struct {
 	}
