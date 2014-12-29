@@ -18,7 +18,7 @@ type FSConfig struct {
 }
 
 var DefaultConfig = &FSConfig{
-	RootDir:  path.Join(homeDir(), ".go-ipfs"),
+	RootDir:  path.Join(homeDir(),".go-ipfs"),
 	LogLevel: 5,
 	Online:   true,
 }

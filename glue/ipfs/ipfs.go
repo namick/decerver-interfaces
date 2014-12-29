@@ -14,20 +14,20 @@ import (
 	decore "github.com/eris-ltd/decerver-interfaces/core"
 	events "github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/modules"
-	blocks "github.com/eris-ltd/go-ipfs/blocks"
-	commands "github.com/eris-ltd/go-ipfs/commands"
-	config "github.com/eris-ltd/go-ipfs/config"
-	core "github.com/eris-ltd/go-ipfs/core"
-	cmds "github.com/eris-ltd/go-ipfs/core/commands"
-	mdag "github.com/eris-ltd/go-ipfs/merkledag"
-	uio "github.com/eris-ltd/go-ipfs/unixfs/io"
-	ftpb "github.com/eris-ltd/go-ipfs/unixfs/pb"
-	u "github.com/eris-ltd/go-ipfs/util"
-	util "github.com/eris-ltd/go-ipfs/util"
-	//b58 "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/github.com/eris-ltd/go-base58"
-	context "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
-	proto "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
-	mh "github.com/eris-ltd/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
+	blocks "github.com/jbenet/go-ipfs/blocks"
+	commands "github.com/jbenet/go-ipfs/commands"
+	config "github.com/jbenet/go-ipfs/config"
+	core "github.com/jbenet/go-ipfs/core"
+	cmds "github.com/jbenet/go-ipfs/core/commands"
+	mdag "github.com/jbenet/go-ipfs/merkledag"
+	uio "github.com/jbenet/go-ipfs/unixfs/io"
+	ftpb "github.com/jbenet/go-ipfs/unixfs/pb"
+	u "github.com/jbenet/go-ipfs/util"
+	util "github.com/jbenet/go-ipfs/util"
+	//b58 "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/eris-ltd/go-base58"
+	context "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/go.net/context"
+	proto "github.com/jbenet/go-ipfs/Godeps/_workspace/src/code.google.com/p/goprotobuf/proto"
+	mh "github.com/jbenet/go-ipfs/Godeps/_workspace/src/github.com/jbenet/go-multihash"
 )
 
 var (
@@ -61,20 +61,24 @@ func NewIpfs() *IpfsModule {
 
 func (mod *IpfsModule) Init() error {
 	// config is RootDir/config
-
+	fmt.Println("IPFS: init starting")
+	fmt.Println("IPFS dir: " + mod.Config.RootDir)
 	filename, err := config.Filename(mod.Config.RootDir)
 	if err != nil {
+		fmt.Println("IPFS error when running config.FileName: " + err.Error())
 		return err
 	}
+	fmt.Println("IPFS configfile name: " + filename)
 
 	// load the config file
 	// if non-existant, initialize ipfs
 	// on the machine
 	mod.ipfs.cfg, err = config.Load(filename)
-	
+
 	if err != nil {
+		fmt.Println("IPFS config load error: " + err.Error() ) 
 		if strings.Contains(err.Error(), "init") {
-			c := exec.Command("ipfs", "init", "-d=" + mod.Config.RootDir)
+			c := exec.Command("ipfs", "init")
 			c.Stdout = os.Stdout
 			err := c.Run()
 			if err != nil {
@@ -86,9 +90,9 @@ func (mod *IpfsModule) Init() error {
 		}
 		return mod.Init()
 	}
-
+	fmt.Println("IPFS: Setting log level")
 	u.SetLogLevel("*", "debug") //logLevels[mod.Config.LogLevel])
-
+	fmt.Println("IPFS: init done")
 	/*if err := updates.CliCheckForUpdates(cfg, filename); err != nil {
 		return nil, err
 	}*/
@@ -96,16 +100,17 @@ func (mod *IpfsModule) Init() error {
 }
 
 func (mod *IpfsModule) Start() error {
-	n, err := core.NewIpfsNode(mod.ipfs.cfg, mod.Config.Online) //config, online
+	ctx := context.Background()
+	n, err := core.NewIpfsNode(ctx, mod.ipfs.cfg, mod.Config.Online) //config, online
 	if err != nil {
-		return err;
+		return err
 	}
 	mod.ipfs.node = n
 	return nil
 }
 
 // TODO: UDP socket won't close
-// https://github.com/eris-ltd/go-ipfs/issues/389
+// https://github.com/jbenet/go-ipfs/issues/389
 func (mod *IpfsModule) Shutdown() error {
 	if n := mod.ipfs.node.Network; n != nil {
 		n.Close()
@@ -283,10 +288,10 @@ func (ipfs *Ipfs) GetBlock(hash string) ([]byte, error) {
 		return nil, err
 	}
 	k := util.Key(h)
-	
+
 	ctx, _ := context.WithTimeout(context.TODO(), time.Second*5)
-	fmt.Printf("IPFS STUFF: node: %v\n",ipfs.node)
-	fmt.Printf("IPFS STUFF: Blocks: %v\n",ipfs.node.Blocks)
+	fmt.Printf("IPFS STUFF: node: %v\n", ipfs.node)
+	fmt.Printf("IPFS STUFF: Blocks: %v\n", ipfs.node.Blocks)
 	b, err := ipfs.node.Blocks.GetBlock(ctx, k)
 	if err != nil {
 		return nil, fmt.Errorf("block get: %v", err)
