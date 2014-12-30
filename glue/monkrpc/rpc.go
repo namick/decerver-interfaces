@@ -73,7 +73,7 @@ func (mod *MonkRpcModule) Init() error {
 	return nil
 }
 
-// This function does nothing. There are no processes to start
+// Connect to rpc server
 func (mod *MonkRpcModule) Start() error {
 	rpcAddr := mod.Config.RpcHost + ":" + strconv.Itoa(mod.Config.RpcPort)
 	logger.Infoln(rpcAddr)
@@ -83,7 +83,7 @@ func (mod *MonkRpcModule) Start() error {
 		os.Exit(0)
 	}
 	mod.client = client
-    logger.Infoln("Started")
+	logger.Infoln("Started")
 
 	return nil
 }
@@ -94,6 +94,16 @@ func (mod *MonkRpcModule) Shutdown() error {
 
 func (mod *MonkRpcModule) WaitForShutdown() {
 
+}
+
+func (mod *MonkRpcModule) ChainId() (string, error) {
+	args := monkrpc.ChainIdArgs{}
+	var res monkrpc.ChainIdRes
+	err := mod.client.Call("TheloniousApi.ChainId", args, &res)
+	if err != nil {
+		return "", err
+	}
+	return res.ChainId, nil
 }
 
 // What module is this?
@@ -190,7 +200,7 @@ func (mod *MonkRpcModule) Msg(addr string, data []string) (string, error) {
 
 // Deploy a new contract.
 func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
-    logger.Debugln("Deploying script: ", file)
+	logger.Debugln("Deploying script: ", file)
 	var scriptHex string
 	if lang == "lll-literal" {
 		scriptHex = mutils.CompileLLL(file, true)

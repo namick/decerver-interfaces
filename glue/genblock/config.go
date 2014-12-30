@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/eris-ltd/thelonious/monkutil"
 	"github.com/eris-ltd/epm-go/utils"
+	"github.com/eris-ltd/thelonious/monkutil"
 	"io/ioutil"
 	"os"
 	"path"
@@ -47,31 +47,35 @@ var DefaultConfig = &ChainConfig{
 }
 
 // can these methods be functions in decerver that take the modules as argument?
-func (mod *GenBlockModule) WriteConfig(config_file string) {
+func (mod *GenBlockModule) WriteConfig(config_file string) error {
 	b, err := json.Marshal(mod.Config)
 	if err != nil {
 		fmt.Println("error marshalling config:", err)
-		return
+		return err
 	}
 	var out bytes.Buffer
 	json.Indent(&out, b, "", "\t")
-	ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	err = ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (mod *GenBlockModule) ReadConfig(config_file string) {
+func (mod *GenBlockModule) ReadConfig(config_file string) error {
 	b, err := ioutil.ReadFile(config_file)
 	if err != nil {
 		fmt.Println("could not read config", err)
 		fmt.Println("resorting to defaults")
-		mod.WriteConfig(config_file)
-		return
+		return err
 	}
 	var config ChainConfig
 	err = json.Unmarshal(b, &config)
 	if err != nil {
 		fmt.Println("error unmarshalling config from file:", err)
-		return
+		return err
 	}
 	*(mod.Config) = config
+	return nil
 }
 
 // this will probably never be used
@@ -87,15 +91,14 @@ func (mod *GenBlockModule) SetConfigObj(config interface{}) error {
 // Set a field in the config struct.
 func (mod *GenBlockModule) SetProperty(field string, value interface{}) error {
 	cv := reflect.ValueOf(mod.Config).Elem()
-    return utils.SetProperty(cv, field, value)
+	return utils.SetProperty(cv, field, value)
 }
 
-func (mod *GenBlockModule) Property(field string) interface{}{
+func (mod *GenBlockModule) Property(field string) interface{} {
 	cv := reflect.ValueOf(mod.Config).Elem()
 	f := cv.FieldByName(field)
-    return f.Interface()
+	return f.Interface()
 }
-
 
 // Set the package global variables, create the root data dir,
 //  copy keys if they are available, and setup logging

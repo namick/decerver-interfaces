@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	mutils "github.com/eris-ltd/decerver-interfaces/glue/monkutils"
-	"github.com/eris-ltd/thelonious/monkutil"
 	"github.com/eris-ltd/epm-go/utils"
+	"github.com/eris-ltd/thelonious/monkutil"
 	"io/ioutil"
 	"os"
 	"path"
@@ -70,34 +70,38 @@ var DefaultConfig = &RpcConfig{
 }
 
 // Marshal the current configuration to file in pretty json.
-func (mod *MonkRpcModule) WriteConfig(config_file string) {
+func (mod *MonkRpcModule) WriteConfig(config_file string) error {
 	b, err := json.Marshal(mod.Config)
 	if err != nil {
 		fmt.Println("error marshalling config:", err)
-		return
+		return err
 	}
 	var out bytes.Buffer
 	json.Indent(&out, b, "", "\t")
-	ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	err = ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Unmarshal the configuration file into module's config struct.
-func (mod *MonkRpcModule) ReadConfig(config_file string) {
+func (mod *MonkRpcModule) ReadConfig(config_file string) error {
 	b, err := ioutil.ReadFile(config_file)
 	if err != nil {
 		fmt.Println("could not read config", err)
 		fmt.Println("resorting to defaults")
-		mod.WriteConfig(config_file)
-		return
+		return err
 	}
 	var config RpcConfig
 	err = json.Unmarshal(b, &config)
 	if err != nil {
 		fmt.Println("error unmarshalling config from file:", err)
 		fmt.Println("resorting to defaults")
-		return
+		return err
 	}
 	*(mod.Config) = config
+	return nil
 }
 
 // Set the config object directly
@@ -112,13 +116,13 @@ func (mod *MonkRpcModule) SetConfigObj(config interface{}) error {
 
 func (mod *MonkRpcModule) SetProperty(field string, value interface{}) error {
 	cv := reflect.ValueOf(mod.Config).Elem()
-    return utils.SetProperty(cv, field, value)
+	return utils.SetProperty(cv, field, value)
 }
 
-func (mod *MonkRpcModule) Property(field string) interface{}{
+func (mod *MonkRpcModule) Property(field string) interface{} {
 	cv := reflect.ValueOf(mod.Config).Elem()
 	f := cv.FieldByName(field)
-    return f.Interface()
+	return f.Interface()
 }
 
 // Set package global variables (LLLPath, monkutil.Config, logging).

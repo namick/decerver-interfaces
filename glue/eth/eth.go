@@ -137,6 +137,10 @@ func (mod *EthModule) Shutdown() error {
 	return nil
 }
 
+func (mod *EthModule) ChainId() (string, error) {
+	return mod.eth.ChainId()
+}
+
 func (mod *EthModule) WaitForShutdown() {
 	mod.eth.ethereum.WaitForShutdown()
 }
@@ -260,6 +264,11 @@ func (mod *EthModule) EthState() *state.State {
 /*
    Implement Blockchain
 */
+
+func (eth *Eth) ChainId() (string, error) {
+	// TODO: implement  BlockN() !
+	return "default", nil
+}
 
 func (eth *Eth) WorldState() *modules.WorldState {
 	state := eth.pipe.World().State()
