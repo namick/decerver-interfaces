@@ -1,5 +1,5 @@
 package ipfs
-
+/*
 import (
 	//"fmt"
 	"io/ioutil"
@@ -204,3 +204,4 @@ func TestShutdown(t *testing.T) {
 	IPFS = start(true)
 	time.Sleep(time.Second * 5)
 }
+*/
