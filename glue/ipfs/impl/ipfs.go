@@ -233,7 +233,7 @@ func (ipfs *Ipfs) PushTree(fpath string, depth int) (string, error) {
 // and there is no notion of "transactions"
 // An ipfs ID is simply the multihash of the publickey
 func (ipfs *Ipfs) ActiveAddress() string {
-	return ipfs.node.Identity.String()
+	return hex.EncodeToString(ipfs.node.Identity.ID())
 }
 
 // Ipfs node's only have one address

@@ -180,13 +180,17 @@ func (mjs *MonkJs) Tx(addr, amt string) modules.JsObject {
 }
 
 func (mjs *MonkJs) Msg(addr string, data []interface{}) modules.JsObject {
+	fmt.Printf("MESSAGE DATA: %v\n",data)
 	indata := make([]string, 0)
-	for _, d := range data {
-		str, ok := d.(string)
-		if !ok {
-			return modules.JsReturnValErr(fmt.Errorf("Msg indata is not an array of strings"))
+	
+	if data != nil && len(data) > 0 {
+		for _, d := range data {
+			str, ok := d.(string)
+			if !ok {
+				return modules.JsReturnValErr(fmt.Errorf("Msg indata is not an array of strings"))
+			}
+			indata = append(indata, str)
 		}
-		indata = append(indata, str)
 	}
 	hash, err := mjs.mm.Msg(addr, indata)
 	var ret modules.JsObject

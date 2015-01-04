@@ -17,6 +17,9 @@ import (
 // This is not the most efficient way of doing things. It will be optimized later, probably as part of a significant
 // overhaul of the entire javascript backend.
 func ToJsValue(input interface{}) interface{} {
+	if input == nil {
+		return input
+	}
 	rv := reflect.ValueOf(input)
 	kind := rv.Kind()
 	if isPrim(rv) {
