@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/eris-ltd/decerver-interfaces/glue/utils"
 	"github.com/eris-ltd/go-ethereum/ethutil"
-	"io"
+    "github.com/eris-ltd/epm-go/utils"
 	"io/ioutil"
 	"os"
 	"path"
@@ -90,26 +89,6 @@ func (mod *EthModule) ReadConfig(config_file string) {
 	*(mod.Config) = config
 }
 
-func (mod *EthModule) SetConfig(field string, value interface{}) error {
-	cv := reflect.ValueOf(mod.eth.config).Elem()
-	f := cv.FieldByName(field)
-	kind := f.Kind()
-
-	k := reflect.ValueOf(value).Kind()
-	if kind != k {
-		return fmt.Errorf("Invalid kind. Expected %s, received %s", kind, k)
-	}
-
-	if kind == reflect.String {
-		f.SetString(value.(string))
-	} else if kind == reflect.Int {
-		f.SetInt(int64(value.(int)))
-	} else if kind == reflect.Bool {
-		f.SetBool(value.(bool))
-	}
-	return nil
-}
-
 // this will probably never be used
 func (mod *EthModule) SetConfigObj(config interface{}) error {
 	if c, ok := config.(*ChainConfig); ok {
@@ -136,7 +115,7 @@ func (eth *Eth) ethConfig() {
 		os.Mkdir(cfg.RootDir, 0777)
 		_, err := os.Stat(path.Join(cfg.RootDir, cfg.KeySession) + ".prv")
 		if err != nil {
-			Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
+			utils.Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
 		}
 	}
 	// eth-go uses a global ethutil.Config object. This will set it up for us, but we do our config of course our way
@@ -147,28 +126,15 @@ func (eth *Eth) ethConfig() {
 	InitLogging(cfg.RootDir, cfg.LogFile, cfg.LogLevel, "")
 }
 
-// common golang, really?
-func Copy(src, dst string) {
-	r, err := os.Open(src)
-	if err != nil {
-		fmt.Println(src, err)
-		ethlogger.Errorln(err)
-		return
-	}
-	defer r.Close()
-
-	w, err := os.Create(dst)
-	if err != nil {
-		fmt.Println(err)
-		ethlogger.Errorln(err)
-		return
-	}
-	defer w.Close()
-
-	_, err = io.Copy(w, r)
-	if err != nil {
-		fmt.Println(err)
-		ethlogger.Errorln(err)
-		return
-	}
+// Set a field in the config struct.
+func (mod *EthModule) SetProperty(field string, value interface{}) error {
+	cv := reflect.ValueOf(mod.Config).Elem()
+    return utils.SetProperty(cv, field, value)
 }
+
+func (mod *EthModule) Property(field string) interface{}{
+	cv := reflect.ValueOf(mod.Config).Elem()
+	f := cv.FieldByName(field)
+    return f.Interface()
+}
+

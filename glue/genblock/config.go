@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/eris-ltd/decerver-interfaces/glue/utils"
 	"github.com/eris-ltd/thelonious/monkutil"
+	"github.com/eris-ltd/epm-go/utils"
 	"io/ioutil"
 	"os"
 	"path"
@@ -74,26 +74,6 @@ func (mod *GenBlockModule) ReadConfig(config_file string) {
 	*(mod.Config) = config
 }
 
-func (mod *GenBlockModule) SetConfig(field string, value interface{}) error {
-	cv := reflect.ValueOf(mod.Config).Elem()
-	f := cv.FieldByName(field)
-	kind := f.Kind()
-
-	k := reflect.ValueOf(value).Kind()
-	if kind != k {
-		return fmt.Errorf("Invalid kind. Expected %s, received %s", kind, k)
-	}
-
-	if kind == reflect.String {
-		f.SetString(value.(string))
-	} else if kind == reflect.Int {
-		f.SetInt(int64(value.(int)))
-	} else if kind == reflect.Bool {
-		f.SetBool(value.(bool))
-	}
-	return nil
-}
-
 // this will probably never be used
 func (mod *GenBlockModule) SetConfigObj(config interface{}) error {
 	if c, ok := config.(*ChainConfig); ok {
@@ -103,6 +83,19 @@ func (mod *GenBlockModule) SetConfigObj(config interface{}) error {
 	}
 	return nil
 }
+
+// Set a field in the config struct.
+func (mod *GenBlockModule) SetProperty(field string, value interface{}) error {
+	cv := reflect.ValueOf(mod.Config).Elem()
+    return utils.SetProperty(cv, field, value)
+}
+
+func (mod *GenBlockModule) Property(field string) interface{}{
+	cv := reflect.ValueOf(mod.Config).Elem()
+	f := cv.FieldByName(field)
+    return f.Interface()
+}
+
 
 // Set the package global variables, create the root data dir,
 //  copy keys if they are available, and setup logging
