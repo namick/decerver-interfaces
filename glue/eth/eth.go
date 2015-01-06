@@ -31,8 +31,6 @@ var (
 	usr, _ = user.Current() // error?!
 )
 
-const version = "0.0.1"
-
 //Logging
 var ethlogger *logger.Logger = logger.NewLogger("EthGlue")
 
@@ -148,10 +146,6 @@ func (mod *EthModule) WaitForShutdown() {
 // What module is this?
 func (mod *EthModule) Name() string {
 	return "eth"
-}
-
-func (mod *EthModule) Version() string {
-	return version
 }
 
 /*

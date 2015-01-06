@@ -8,8 +8,6 @@ import (
 	"github.com/eris-ltd/thelonious/monk"
 )
 
-const version = "0.0.1"
-
 type TempProps struct {
 	ChainId    string
 	RemoteHost string
@@ -111,10 +109,6 @@ func (mjs *MonkJs) Property(name string) interface{} {
 // What module is this?
 func (mjs *MonkJs) Name() string {
 	return "monk"
-}
-
-func (mjs *MonkJs) Version() string {
-	return version
 }
 
 func (mjs *MonkJs) Subscribe(name, event, target string) chan events.Event {

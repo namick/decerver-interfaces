@@ -7,8 +7,6 @@ import(
 	"github.com/eris-ltd/decerver-interfaces/glue/ipfs/impl"
 )
 
-const version = "0.0.1"
-
 // implements decerver-interface module.
 type(
 	
@@ -71,10 +69,6 @@ func (mod *IpfsModule) WriteConfig(config_file string) {
 
 func (mod *IpfsModule) Name() string {
 	return "ipfs"
-}
-
-func (mod *IpfsModule) Version() string {
-	return version
 }
 
 func (mod *IpfsModule) Subscribe(name string, event string, target string) chan events.Event {
