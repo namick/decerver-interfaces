@@ -16,13 +16,14 @@ type DeCerver interface {
 	ReadConfig(filename string)
 	WriteConfig(cfg *DCConfig)
 	GetConfig() *DCConfig
-	GetPaths() FileIO
+	GetFileIO() FileIO
+	IsStarted() bool
 }
 
 type FileIO interface {
 	Root() string
 	Log() string
-	Apps() string
+	Dapps() string
 	Blockchains() string
 	Filesystems() string
 	Modules() string
@@ -33,6 +34,9 @@ type FileIO interface {
 	// Useful when you want to save a file into a directory gotten by the 'Paths'
 	// object.
 	WriteFile(directory, name string, data []byte) error
+	
+	CreateModuleDirectory(moduleName string) error
+	CreateDirectory(dir string) error
 }
 
 type RuntimeManager interface {
@@ -44,6 +48,7 @@ type RuntimeManager interface {
 }
 
 type Runtime interface {
+	Shutdown()
 	BindScriptObject(name string, val interface{}) error
 	LoadScriptFile(fileName string) error
 	LoadScriptFiles(fileName ...string) error
@@ -53,5 +58,5 @@ type Runtime interface {
 }
 
 func NewLogger(name string) *log.Logger {
-	return log.New(os.Stdout,"[" + name + "] ", log.LstdFlags)
+	return log.New(os.Stdout, "["+name+"] ", log.LstdFlags)
 }

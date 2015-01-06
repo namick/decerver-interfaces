@@ -11,6 +11,7 @@ import (
 
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
+	mutils "github.com/eris-ltd/decerver-interfaces/glue/monkutils"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 
 	"github.com/eris-ltd/thelonious/monkchain"
@@ -69,10 +70,10 @@ func (mod *GenBlockModule) Init() error {
 	mod.gConfig()
 
 	if monkutil.Config.Db == nil {
-		monkutil.Config.Db = NewDatabase(mod.Config.DbName)
+		monkutil.Config.Db = mutils.NewDatabase(mod.Config.DbName, false)
 	}
 
-	keyManager := NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
+	keyManager := mutils.NewKeyManager(mod.Config.KeyStore, mod.Config.RootDir, monkutil.Config.Db)
 	err := keyManager.Init(mod.Config.KeySession, mod.Config.KeyCursor, false)
 	if err != nil {
 		return err
@@ -93,6 +94,10 @@ func (mod *GenBlockModule) Start() error {
 // No processes to start, no processes to stop
 func (mod *GenBlockModule) Shutdown() error {
 	return nil
+}
+
+func (mod *GenBlockModule) WaitForShutdown() {
+
 }
 
 // What module is this?

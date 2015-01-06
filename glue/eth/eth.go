@@ -15,21 +15,23 @@ import (
 	"github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 
-	"github.com/ethereum/go-ethereum"
-	//"github.com/ethereum/go-ethereum/chain"
-	"github.com/ethereum/go-ethereum/chain/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/logger"
-	"github.com/ethereum/go-ethereum/xeth"
-	//"github.com/ethereum/go-ethereum/react"
-	"github.com/ethereum/go-ethereum/ethutil"
-	"github.com/ethereum/go-ethereum/state"
+	"github.com/eris-ltd/go-ethereum"
+	//"github.com/eris-ltd/go-ethereum/chain"
+	"github.com/eris-ltd/go-ethereum/chain/types"
+	"github.com/eris-ltd/go-ethereum/crypto"
+	"github.com/eris-ltd/go-ethereum/logger"
+	"github.com/eris-ltd/go-ethereum/xeth"
+	//"github.com/eris-ltd/go-ethereum/react"
+	"github.com/eris-ltd/go-ethereum/ethutil"
+	"github.com/eris-ltd/go-ethereum/state"
 )
 
 var (
 	GoPath = os.Getenv("GOPATH")
 	usr, _ = user.Current() // error?!
 )
+
+const version = "0.0.1"
 
 //Logging
 var ethlogger *logger.Logger = logger.NewLogger("EthGlue")
@@ -137,11 +139,19 @@ func (mod *EthModule) Shutdown() error {
 	return nil
 }
 
+func (mod *EthModule) WaitForShutdown() {
+	mod.eth.ethereum.WaitForShutdown()
+}
+
 // ReadConfig and WriteConfig implemented in config.go
 
 // What module is this?
 func (mod *EthModule) Name() string {
 	return "eth"
+}
+
+func (mod *EthModule) Version() string {
+	return version
 }
 
 /*

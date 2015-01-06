@@ -1,4 +1,5 @@
 package blockchain
+
 /*
 import (
 	"github.com/eris-ltd/decerver-interfaces/modules"
@@ -20,14 +21,14 @@ func (mapi *Monk) IsContract(r *http.Request, args *modules.VString, reply *modu
 }
 
 func (mapi *Monk) BalanceAt(r *http.Request, args *modules.VString, reply *modules.VString) error {
-	
+
 	acc := mapi.bc.Account(args.SVal)
 	if acc == nil {
 		reply.SVal = ""
 	} else {
 		reply.SVal = acc["Balance"].(string)
 	}
-	
+
 	return nil
 }
 

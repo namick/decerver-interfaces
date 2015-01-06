@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// This interface allow modules to subscribe to and publish events. It is implemented by the 
+// This interface allow modules to subscribe to and publish events. It is implemented by the
 // event processor.
 type EventRegistry interface {
 	Post(e Event)
@@ -17,11 +17,11 @@ type EventRegistry interface {
 
 // A default object that implements 'Event'
 type Event struct {
-	Event       string
-	Target      string
-	Resource    interface{}
-	Source      string
-	TimeStamp   time.Time
+	Event     string
+	Target    string
+	Resource  interface{}
+	Source    string
+	TimeStamp time.Time
 }
 
 // A subscriber listens to events.

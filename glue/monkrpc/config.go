@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	mutils "github.com/eris-ltd/decerver-interfaces/glue/monkutils"
-	"github.com/eris-ltd/decerver-interfaces/glue/utils"
 	"github.com/eris-ltd/thelonious/monkutil"
+	"github.com/eris-ltd/epm-go/utils"
 	"io/ioutil"
 	"os"
 	"path"
@@ -100,27 +100,6 @@ func (mod *MonkRpcModule) ReadConfig(config_file string) {
 	*(mod.Config) = config
 }
 
-// Set a field in the config struct.
-func (mod *MonkRpcModule) SetConfig(field string, value interface{}) error {
-	cv := reflect.ValueOf(mod.Config).Elem()
-	f := cv.FieldByName(field)
-	kind := f.Kind()
-
-	k := reflect.ValueOf(value).Kind()
-	if kind != k {
-		return fmt.Errorf("Invalid kind. Expected %s, received %s", kind, k)
-	}
-
-	if kind == reflect.String {
-		f.SetString(value.(string))
-	} else if kind == reflect.Int {
-		f.SetInt(int64(value.(int)))
-	} else if kind == reflect.Bool {
-		f.SetBool(value.(bool))
-	}
-	return nil
-}
-
 // Set the config object directly
 func (mod *MonkRpcModule) SetConfigObj(config interface{}) error {
 	if c, ok := config.(*RpcConfig); ok {
@@ -129,6 +108,17 @@ func (mod *MonkRpcModule) SetConfigObj(config interface{}) error {
 		return fmt.Errorf("Invalid config object")
 	}
 	return nil
+}
+
+func (mod *MonkRpcModule) SetProperty(field string, value interface{}) error {
+	cv := reflect.ValueOf(mod.Config).Elem()
+    return utils.SetProperty(cv, field, value)
+}
+
+func (mod *MonkRpcModule) Property(field string) interface{}{
+	cv := reflect.ValueOf(mod.Config).Elem()
+	f := cv.FieldByName(field)
+    return f.Interface()
 }
 
 // Set package global variables (LLLPath, monkutil.Config, logging).
@@ -157,7 +147,7 @@ func (mod *MonkRpcModule) rConfig() {
 	}
 
 	if monkutil.Config.Db == nil {
-		monkutil.Config.Db = mutils.NewDatabase(mod.Config.DbName)
+		monkutil.Config.Db = mutils.NewDatabase(mod.Config.DbName, false)
 	}
 
 	// TODO: enhance this with more pkg level control

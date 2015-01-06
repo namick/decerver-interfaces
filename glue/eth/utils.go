@@ -13,15 +13,15 @@ import (
 	"time"
 
 	"bitbucket.org/kardianos/osext"
-	eth "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/logger"
-	"github.com/ethereum/go-ethereum/miner"
-	//"github.com/ethereum/go-ethereum/xeth"
-	//"github.com/ethereum/go-ethereum/monkrpc"
-	"github.com/ethereum/go-ethereum/ethutil"
-	"github.com/ethereum/go-ethereum/wire"
+	eth "github.com/eris-ltd/go-ethereum"
+	"github.com/eris-ltd/go-ethereum/crypto"
+	"github.com/eris-ltd/go-ethereum/ethdb"
+	"github.com/eris-ltd/go-ethereum/logger"
+	"github.com/eris-ltd/go-ethereum/miner"
+	//"github.com/eris-ltd/go-ethereum/xeth"
+	//"github.com/eris-ltd/go-ethereum/monkrpc"
+	"github.com/eris-ltd/go-ethereum/ethutil"
+	"github.com/eris-ltd/go-ethereum/wire"
 )
 
 // this is basically go-etheruem/utils
