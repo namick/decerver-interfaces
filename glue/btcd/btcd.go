@@ -19,6 +19,8 @@ import (
 	"github.com/conformal/btcwire"
 )
 
+const version = "0.0.1"
+
 type BTC struct {
 	btcdConfig   *rpc.ConnConfig
 	walletConfig *rpc.ConnConfig
@@ -157,6 +159,10 @@ func (b *BTC) WriteConfig(config_file string) {
 
 func (b *BTC) Name() string {
 	return "btcd"
+}
+
+func (b *BTC) Version() string {
+	return version
 }
 
 func (b *BTC) Subscribe(name string, event string, target string) chan events.Event {

@@ -8,6 +8,8 @@ import (
 	"github.com/eris-ltd/legalmarkdown/lmd"
 )
 
+const version = "0.0.1"
+
 type LmdApi struct {
 	name string
 }
@@ -75,6 +77,10 @@ func (mod *LmdModule) WriteConfig(config_file string) {
 
 func (mod *LmdModule) Name() string {
 	return "lmd"
+}
+
+func (mod *LmdModule) Version() string {
+	return version
 }
 
 func (mod *LmdModule) Subscribe(name string, event string, target string) chan events.Event {

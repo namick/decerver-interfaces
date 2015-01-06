@@ -32,6 +32,7 @@ type (
 		Restart() error
 		Shutdown() error
 		Name() string
+		Version() string
 		// TODO No channel here. Wait so that modules doesn't break.
 		Subscribe(name, event, target string) chan events.Event
 		UnSubscribe(name string)
