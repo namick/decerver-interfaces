@@ -73,24 +73,53 @@ func (mod *MonkRpcModule) rpcTxCountCall(args monkrpc.GetTxCountArgs) (uint64, e
 
 // Send a tx to the local server
 func (mod *MonkRpcModule) rpcLocalTxCall(args monkrpc.NewTxArgs) (string, error) {
-	return mod.rpcTxCall("Transact", args)
+	resMap, err := mod.rpcTxCall("Transact", args)
+	if err != nil {
+		return "", err
+	}
+	hash := resMap["hash"].(string)
+	return hash, nil
 }
 
 // Send a create to the local server
 func (mod *MonkRpcModule) rpcLocalCreateCall(args monkrpc.NewTxArgs) (string, error) {
-	return mod.rpcTxCall("Create", args)
+	resMap, err := mod.rpcTxCall("Create", args)
+	if err != nil {
+		return "", err
+	}
+	addr := resMap["address"].(string)
+	return addr, nil
 }
 
 // Send a tx to the remote server
 func (mod *MonkRpcModule) rpcRemoteTxCall(args monkrpc.PushTxArgs) (string, error) {
-	return mod.rpcTxCall("PushTx", args)
-}
-
-func (mod *MonkRpcModule) rpcTxCall(method string, args interface{}) (string, error) {
-	res := new(string)
-	err := mod.client.Call("TheloniousApi."+method, args, res)
+	resMap, err := mod.rpcTxCall("PushTx", args)
 	if err != nil {
 		return "", err
 	}
-	return *res, nil
+	hash := resMap["hash"].(string)
+	return hash, nil
+}
+
+func (mod *MonkRpcModule) rpcTxCall(method string, args interface{}) (map[string]interface{}, error) {
+	res := new(string)
+	err := mod.client.Call("TheloniousApi."+method, args, res)
+	if err != nil {
+		return nil, err
+	}
+	r, err := getSuccessMap(*res)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func getSuccessMap(j string) (map[string]interface{}, error) {
+	sR := monkrpc.SuccessRes{}
+	err := json.Unmarshal([]byte(j), &sR)
+	if err != nil {
+		return nil, err
+	}
+	resMap := sR.Result.(map[string]interface{})
+	return resMap, nil
 }

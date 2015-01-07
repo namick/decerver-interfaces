@@ -70,11 +70,8 @@ func (mod *MonkRpcModule) Init() error {
 	}
 	mod.keyManager = keyManager
 
-	return nil
-}
-
-// Connect to rpc server
-func (mod *MonkRpcModule) Start() error {
+	// need this here becaus we want to be able to get ChainId after Init() without calling Start()
+	// TODO: deal with this better somehow?
 	rpcAddr := mod.Config.RpcHost + ":" + strconv.Itoa(mod.Config.RpcPort)
 	logger.Infoln(rpcAddr)
 	client, err := jsonrpc.Dial("tcp", rpcAddr)
@@ -83,6 +80,12 @@ func (mod *MonkRpcModule) Start() error {
 		os.Exit(0)
 	}
 	mod.client = client
+
+	return nil
+}
+
+// Connect to rpc server
+func (mod *MonkRpcModule) Start() error {
 	logger.Infoln("Started")
 
 	return nil
@@ -98,12 +101,12 @@ func (mod *MonkRpcModule) WaitForShutdown() {
 
 func (mod *MonkRpcModule) ChainId() (string, error) {
 	args := monkrpc.ChainIdArgs{}
-	var res monkrpc.ChainIdRes
+	var res string //monkrpc.ChainIdRes
 	err := mod.client.Call("TheloniousApi.ChainId", args, &res)
 	if err != nil {
 		return "", err
 	}
-	return res.ChainId, nil
+	return res, nil
 }
 
 // What module is this?
