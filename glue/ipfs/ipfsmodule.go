@@ -79,7 +79,6 @@ func (mod *IpfsModule) UnSubscribe(name string) {
 	
 }
 
-
 func (api *IpfsApi) Get(cmd string, params ...string) modules.JsObject {
 	return modules.JsReturnVal(api.ipfs.Get(cmd, params...))
 }
@@ -129,7 +128,6 @@ func (api *IpfsApi) PushTree(fpath string, depth int) modules.JsObject {
 }
 
 // IpfsModule should satisfy KeyManager
-
 func (api *IpfsApi) ActiveAddress() modules.JsObject {
 	return modules.JsReturnVal(api.ipfs.ActiveAddress(), nil)
 }

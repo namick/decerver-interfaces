@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"fmt"
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/types"
@@ -127,6 +128,7 @@ func JsReturnVal(data interface{}, err error) JsObject {
 		ret["Error"] = ""
 		ret["Data"] = types.ToJsValue(data)
 	}
+	fmt.Printf("JS RETURN VALUE: %v\n",ret)
 	return ret
 }
 

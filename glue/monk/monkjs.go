@@ -193,12 +193,16 @@ func (mjs *MonkJs) Msg(addr string, data []interface{}) modules.JsObject {
 		}
 	}
 	hash, err := mjs.mm.Msg(addr, indata)
-	var ret modules.JsObject
+	fmt.Println("HASH: " + hash)
+	ret := make(modules.JsObject)
 	if err == nil {
-		ret = make(modules.JsObject)
-		ret["Hash"] = hash
+		ret["Hash"] = "0x" + hash // Might as well
 		ret["Address"] = ""
 		ret["Error"] = ""
+	} else {
+		ret["Hash"] = ""
+		ret["Address"] = ""
+		ret["Error"] = err.Error()
 	}
 	return modules.JsReturnVal(ret, err)
 }
