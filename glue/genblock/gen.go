@@ -100,6 +100,18 @@ func (mod *GenBlockModule) WaitForShutdown() {
 
 }
 
+func (mod *GenBlockModule) ChainId() (string, error) {
+	// get the chain id
+	data, err := monkutil.Config.Db.Get([]byte("ChainID"))
+	if err != nil {
+		return "", err
+	} else if len(data) == 0 {
+		return "", fmt.Errorf("ChainID is empty!")
+	}
+	chainId := monkutil.Bytes2Hex(data)
+	return chainId, nil
+}
+
 // What module is this?
 func (mod *GenBlockModule) Name() string {
 	return "genblock"
@@ -278,6 +290,8 @@ func (m *GenBlockModule) IsAutocommit() bool {
 	return false
 }
 
+/*
+TODO: should we use this instead?
 func (mod *GenBlockModule) ChainId() ([]byte, error) {
 	keys, err := mod.selectKeyPair()
 	if err != nil {
@@ -285,7 +299,7 @@ func (mod *GenBlockModule) ChainId() ([]byte, error) {
 	}
 	sig := mod.block.Sign(keys.PrivateKey)
 	return monkcrypto.Sha3Bin(sig)[:20], nil
-}
+}*/
 
 func (mod *GenBlockModule) selectKeyPair() (*monkcrypto.KeyPair, error) {
 	var keys *monkcrypto.KeyPair

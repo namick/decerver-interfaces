@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/eris-ltd/decerver-interfaces/glue/utils"
+	"github.com/eris-ltd/epm-go/utils"
 	"github.com/eris-ltd/go-ethereum/ethutil"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -61,23 +60,26 @@ var DefaultConfig = &ChainConfig{
 }
 
 // can these methods be functions in decerver that take the modules as argument?
-func (mod *EthModule) WriteConfig(config_file string) {
+func (mod *EthModule) WriteConfig(config_file string) error {
 	b, err := json.Marshal(mod.eth.config)
 	if err != nil {
 		fmt.Println("error marshalling config:", err)
-		return
+		return err
 	}
 	var out bytes.Buffer
 	json.Indent(&out, b, "", "\t")
-	ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	err = ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (mod *EthModule) ReadConfig(config_file string) {
+func (mod *EthModule) ReadConfig(config_file string) error {
 	b, err := ioutil.ReadFile(config_file)
 	if err != nil {
 		fmt.Println("could not read config", err)
 		fmt.Println("resorting to defaults")
-		mod.WriteConfig(config_file)
-		return
+		return err
 	}
 	var config ChainConfig
 	err = json.Unmarshal(b, &config)
@@ -85,28 +87,9 @@ func (mod *EthModule) ReadConfig(config_file string) {
 		fmt.Println("error unmarshalling config from file:", err)
 		fmt.Println("resorting to defaults")
 		//mod.eth.config = DefaultConfig
-		return
+		return err
 	}
 	*(mod.Config) = config
-}
-
-func (mod *EthModule) SetConfig(field string, value interface{}) error {
-	cv := reflect.ValueOf(mod.eth.config).Elem()
-	f := cv.FieldByName(field)
-	kind := f.Kind()
-
-	k := reflect.ValueOf(value).Kind()
-	if kind != k {
-		return fmt.Errorf("Invalid kind. Expected %s, received %s", kind, k)
-	}
-
-	if kind == reflect.String {
-		f.SetString(value.(string))
-	} else if kind == reflect.Int {
-		f.SetInt(int64(value.(int)))
-	} else if kind == reflect.Bool {
-		f.SetBool(value.(bool))
-	}
 	return nil
 }
 
@@ -136,7 +119,7 @@ func (eth *Eth) ethConfig() {
 		os.Mkdir(cfg.RootDir, 0777)
 		_, err := os.Stat(path.Join(cfg.RootDir, cfg.KeySession) + ".prv")
 		if err != nil {
-			Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
+			utils.Copy(cfg.KeyFile, path.Join(cfg.RootDir, cfg.KeySession)+".prv")
 		}
 	}
 	// eth-go uses a global ethutil.Config object. This will set it up for us, but we do our config of course our way
@@ -147,28 +130,14 @@ func (eth *Eth) ethConfig() {
 	InitLogging(cfg.RootDir, cfg.LogFile, cfg.LogLevel, "")
 }
 
-// common golang, really?
-func Copy(src, dst string) {
-	r, err := os.Open(src)
-	if err != nil {
-		fmt.Println(src, err)
-		ethlogger.Errorln(err)
-		return
-	}
-	defer r.Close()
+// Set a field in the config struct.
+func (mod *EthModule) SetProperty(field string, value interface{}) error {
+	cv := reflect.ValueOf(mod.Config).Elem()
+	return utils.SetProperty(cv, field, value)
+}
 
-	w, err := os.Create(dst)
-	if err != nil {
-		fmt.Println(err)
-		ethlogger.Errorln(err)
-		return
-	}
-	defer w.Close()
-
-	_, err = io.Copy(w, r)
-	if err != nil {
-		fmt.Println(err)
-		ethlogger.Errorln(err)
-		return
-	}
+func (mod *EthModule) Property(field string) interface{} {
+	cv := reflect.ValueOf(mod.Config).Elem()
+	f := cv.FieldByName(field)
+	return f.Interface()
 }

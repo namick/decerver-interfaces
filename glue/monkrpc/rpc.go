@@ -70,11 +70,8 @@ func (mod *MonkRpcModule) Init() error {
 	}
 	mod.keyManager = keyManager
 
-	return nil
-}
-
-// This function does nothing. There are no processes to start
-func (mod *MonkRpcModule) Start() error {
+	// need this here becaus we want to be able to get ChainId after Init() without calling Start()
+	// TODO: deal with this better somehow?
 	rpcAddr := mod.Config.RpcHost + ":" + strconv.Itoa(mod.Config.RpcPort)
 	logger.Infoln(rpcAddr)
 	client, err := jsonrpc.Dial("tcp", rpcAddr)
@@ -87,12 +84,29 @@ func (mod *MonkRpcModule) Start() error {
 	return nil
 }
 
+// Connect to rpc server
+func (mod *MonkRpcModule) Start() error {
+	logger.Infoln("Started")
+
+	return nil
+}
+
 func (mod *MonkRpcModule) Shutdown() error {
 	return mod.client.Close()
 }
 
 func (mod *MonkRpcModule) WaitForShutdown() {
 
+}
+
+func (mod *MonkRpcModule) ChainId() (string, error) {
+	args := monkrpc.ChainIdArgs{}
+	var res string //monkrpc.ChainIdRes
+	err := mod.client.Call("TheloniousApi.ChainId", args, &res)
+	if err != nil {
+		return "", err
+	}
+	return res, nil
 }
 
 // What module is this?
@@ -189,6 +203,7 @@ func (mod *MonkRpcModule) Msg(addr string, data []string) (string, error) {
 
 // Deploy a new contract.
 func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
+	logger.Debugln("Deploying script: ", file)
 	var scriptHex string
 	if lang == "lll-literal" {
 		scriptHex = mutils.CompileLLL(file, true)
@@ -206,7 +221,7 @@ func (mod *MonkRpcModule) Script(file, lang string) (string, error) {
 
 	if mod.Config.Local {
 		args := mod.newLocalTx("", VALUE, GAS, GASPRICE, scriptHex)
-		return mod.rpcLocalTxCall(args)
+		return mod.rpcLocalCreateCall(args)
 	}
 	keys := mod.keyManager.KeyPair()
 	args := mod.newRemoteTx(keys, "", VALUE, GAS, GASPRICE, scriptHex)

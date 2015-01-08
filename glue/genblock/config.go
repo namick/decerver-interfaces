@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/eris-ltd/decerver-interfaces/glue/utils"
+	"github.com/eris-ltd/epm-go/utils"
 	"github.com/eris-ltd/thelonious/monkutil"
 	"io/ioutil"
 	"os"
@@ -47,50 +47,34 @@ var DefaultConfig = &ChainConfig{
 }
 
 // can these methods be functions in decerver that take the modules as argument?
-func (mod *GenBlockModule) WriteConfig(config_file string) {
+func (mod *GenBlockModule) WriteConfig(config_file string) error {
 	b, err := json.Marshal(mod.Config)
 	if err != nil {
 		fmt.Println("error marshalling config:", err)
-		return
+		return err
 	}
 	var out bytes.Buffer
 	json.Indent(&out, b, "", "\t")
-	ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	err = ioutil.WriteFile(config_file, out.Bytes(), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (mod *GenBlockModule) ReadConfig(config_file string) {
+func (mod *GenBlockModule) ReadConfig(config_file string) error {
 	b, err := ioutil.ReadFile(config_file)
 	if err != nil {
 		fmt.Println("could not read config", err)
 		fmt.Println("resorting to defaults")
-		mod.WriteConfig(config_file)
-		return
+		return err
 	}
 	var config ChainConfig
 	err = json.Unmarshal(b, &config)
 	if err != nil {
 		fmt.Println("error unmarshalling config from file:", err)
-		return
+		return err
 	}
 	*(mod.Config) = config
-}
-
-func (mod *GenBlockModule) SetConfig(field string, value interface{}) error {
-	cv := reflect.ValueOf(mod.Config).Elem()
-	f := cv.FieldByName(field)
-	kind := f.Kind()
-
-	k := reflect.ValueOf(value).Kind()
-	if kind != k {
-		return fmt.Errorf("Invalid kind. Expected %s, received %s", kind, k)
-	}
-
-	if kind == reflect.String {
-		f.SetString(value.(string))
-	} else if kind == reflect.Int {
-		f.SetInt(int64(value.(int)))
-	} else if kind == reflect.Bool {
-		f.SetBool(value.(bool))
-	}
 	return nil
 }
 
@@ -102,6 +86,18 @@ func (mod *GenBlockModule) SetConfigObj(config interface{}) error {
 		return fmt.Errorf("Invalid config object")
 	}
 	return nil
+}
+
+// Set a field in the config struct.
+func (mod *GenBlockModule) SetProperty(field string, value interface{}) error {
+	cv := reflect.ValueOf(mod.Config).Elem()
+	return utils.SetProperty(cv, field, value)
+}
+
+func (mod *GenBlockModule) Property(field string) interface{} {
+	cv := reflect.ValueOf(mod.Config).Elem()
+	f := cv.FieldByName(field)
+	return f.Interface()
 }
 
 // Set the package global variables, create the root data dir,
