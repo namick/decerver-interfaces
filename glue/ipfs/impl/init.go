@@ -85,31 +85,10 @@ func initConfig(configFilename string) (*config.Config, error) {
 		Bootstrap: []*config.BootstrapPeer{
 			&config.BootstrapPeer{ // Use these hardcoded bootstrap peers for now.
 				// mars.i.ipfs.io
-				PeerID:  "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-				Address: "/ip4/104.131.131.82/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Neptune
-				PeerID:  "QmSoLnSGccFuZQJzRadHn95W2CrSFmZuTdDWP8HXaHca9z",
-				Address: "/ip4/104.236.176.52/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Pluto
-				PeerID:  "QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69RrZm",
-				Address: "/ip4/104.236.179.241/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Uranus
-				PeerID:  "QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm",
-				Address: "/ip4/162.243.248.213/tcp/4001",
-			},
-			&config.BootstrapPeer{
-				// Saturn
-				PeerID:  "QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
-				Address: "/ip4/128.199.219.111/tcp/4001",
+				PeerID:  "QmT6U3tyrUkinji19MTuN8S1vbjMxifghyr7rH72ZuPWEp",
+				Address: "/ip4/92.243.15.73/tcp/4001",
 			},
 		},
-
 		Datastore: ds,
 
 		Logs: logConfig,

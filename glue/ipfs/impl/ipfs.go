@@ -44,7 +44,7 @@ func (ipfs *Ipfs) Start() error {
 }
 
 // TODO: UDP socket won't close
-// https://github.com/jbenet/go-ipfs/issues/389
+// https://github.com/eris-ltd/go-ipfs/issues/389
 func (ipfs *Ipfs) Shutdown() error {
 	// TODO close
 	if n := ipfs.node.Network; n != nil {
