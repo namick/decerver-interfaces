@@ -44,6 +44,8 @@ func (ipfs *Ipfs) Init() error {
 		}
 	}
 	
+	// TODO auto inject our peer server into the config.
+	
 	// Make this the active configuration file.
 	ipfs.cfg = cfg
 	// TODO add settings later.
