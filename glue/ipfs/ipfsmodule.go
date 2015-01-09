@@ -1,39 +1,44 @@
 package ipfs
 
-import(
+import (
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
-	"github.com/eris-ltd/decerver-interfaces/modules"
 	"github.com/eris-ltd/decerver-interfaces/glue/ipfs/impl"
+	"github.com/eris-ltd/decerver-interfaces/modules"
+	"path"
 )
 
 // implements decerver-interface module.
-type(
-	
+type (
+
 	// This is the module.
 	IpfsModule struct {
-		ipfs   *impl.Ipfs
+		ipfs    *impl.Ipfs
 		ipfsApi *IpfsApi
+		rootDir   string
 	}
 
 	// This is the api.
 	IpfsApi struct {
-		ipfs   *impl.Ipfs
+		ipfs *impl.Ipfs
 	}
 )
 
 func NewIpfsModule() *IpfsModule {
 	ipfs := &impl.Ipfs{}
-	return &IpfsModule{ipfs, &IpfsApi{ipfs}}
+	return &IpfsModule{ipfs, &IpfsApi{ipfs}, ""}
 }
 
 func (mod *IpfsModule) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
+	pt := path.Join(fileIO.Filesystems(),"ipfs")
+	fileIO.CreateDirectory(pt)
+	mod.rootDir = pt
 	rm.RegisterApiObject("ipfs", mod.ipfsApi)
 	return nil
 }
 
 func (mod *IpfsModule) Init() error {
-	return mod.ipfs.Init()
+	return mod.ipfs.Init(mod.rootDir)
 }
 
 func (mod *IpfsModule) Start() error {
@@ -76,7 +81,7 @@ func (mod *IpfsModule) Subscribe(name string, event string, target string) chan 
 }
 
 func (mod *IpfsModule) UnSubscribe(name string) {
-	
+
 }
 
 func (api *IpfsApi) Get(cmd string, params ...string) modules.JsObject {

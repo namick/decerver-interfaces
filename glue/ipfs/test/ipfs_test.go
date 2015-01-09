@@ -1,5 +1,5 @@
 package ipfs
-/*
+
 import (
 	//"fmt"
 	"io/ioutil"
@@ -7,12 +7,14 @@ import (
 	"os"
 	"time"
 	//"path"
-	modules "github.com/eris-ltd/decerver-interfaces/modules"
+	"github.com/eris-ltd/decerver-interfaces/modules"
+	"github.com/eris-ltd/decerver-interfaces/glue/ipfs"
 	"testing"
 )
 
 var (
-	IPFS = start(true) // offline
+
+	IPFS ipfs.IpfsModule
 
 	block = `here is a block of data to push. it is a modest size amount.
     not too much data, but not too little.
@@ -51,20 +53,8 @@ var (
 	}
 )
 
-// TODO: how do we stop ipfs?!
-func start(online bool) *IpfsModule {
-	i := NewIpfs()
-	i.Config.Online = online
-	err := i.Init()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = i.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
-	time.Sleep(time.Second * 3)
-	return i
+func init(){
+	IPFS = ipfs.NewIpfsModule()
 }
 
 func writeFile(t *testing.T, name string, data []byte) {
@@ -116,6 +106,15 @@ func cmpTree(t *testing.T, tree1 *modules.FsNode, tree2 *modules.FsNode) {
 		cmpTree(t, tree1.Nodes[i], tree2.Nodes[i])
 	}
 }
+
+func TestModule(t *testing.T) {
+	
+	// test IpfsModule satisfies DecerverModule
+	f := func(b modules.Module) {}
+	f(IPFS)
+
+}
+
 
 func TestBlock(t *testing.T) {
 	h, err := IPFS.PushBlock([]byte(block))
@@ -183,17 +182,6 @@ func TestTree(t *testing.T) {
 	}
 	tr.Name = tree.Name
 	cmpTree(t, tr, &tree)
-}
-
-func TestModule(t *testing.T) {
-	// test IpfsModule satisfies DecerverModule
-	f := func(b modules.Module) {}
-	f(IPFS)
-
-	// test IpfsModule and Ipfs satisfy FileSystem
-	g := func(b modules.FileSystem) {}
-	g(IPFS)
-	g(IPFS.ipfs)
 }
 
 func TestShutdown(t *testing.T) {

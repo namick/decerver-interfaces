@@ -10,7 +10,6 @@ import (
 	"github.com/eris-ltd/go-ipfs/util"
 	"github.com/eris-ltd/go-ipfs/util/debugerror"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 )
@@ -18,18 +17,9 @@ import (
 // Keep this higher then 1024
 const nBitsForKeypairDefault = 4096
 
-func (ipfs *Ipfs) Init() error {
+func (ipfs *Ipfs) Init(rootDir string) error {
 	fmt.Println("IPFS: initializing")
 	
-	// TODO have had minor issues with path dependent config. Will
-	// fix. Sticking to ~/.go-ipfs for now
-	usr, uErr := user.Current()
-	
-	if uErr != nil {
-		return uErr
-	}
-	
-	rootDir := path.Join(usr.HomeDir, ".go-ipfs")
 	cfg, err := config.Load(path.Join(rootDir,"config"))
 
 	if err != nil {
