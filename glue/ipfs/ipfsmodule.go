@@ -1,12 +1,22 @@
 package ipfs
 
 import (
+	"fmt"
 	"github.com/eris-ltd/decerver-interfaces/core"
 	"github.com/eris-ltd/decerver-interfaces/events"
 	"github.com/eris-ltd/decerver-interfaces/glue/ipfs/impl"
 	"github.com/eris-ltd/decerver-interfaces/modules"
 	"path"
 )
+
+// This is the configuration file Decerver uses.
+type IpfsDecerverConfig struct {
+	RootDir           string `json:"root_directory"`
+}
+
+func getDefaultConfig(rootDir string) *IpfsDecerverConfig{
+	return &IpfsDecerverConfig{rootDir}
+}
 
 // implements decerver-interface module.
 type (
@@ -15,7 +25,8 @@ type (
 	IpfsModule struct {
 		ipfs    *impl.Ipfs
 		ipfsApi *IpfsApi
-		rootDir   string
+		config *IpfsDecerverConfig
+		fileIO  core.FileIO
 	}
 
 	// This is the api.
@@ -26,19 +37,43 @@ type (
 
 func NewIpfsModule() *IpfsModule {
 	ipfs := &impl.Ipfs{}
-	return &IpfsModule{ipfs, &IpfsApi{ipfs}, ""}
+	mod := &IpfsModule{}
+	mod.ipfs = ipfs
+	mod.ipfsApi = &IpfsApi{ipfs}
+	return mod
 }
 
 func (mod *IpfsModule) Register(fileIO core.FileIO, rm core.RuntimeManager, eReg events.EventRegistry) error {
-	pt := path.Join(fileIO.Filesystems(),"ipfs")
-	fileIO.CreateDirectory(pt)
-	mod.rootDir = pt
+	mod.fileIO = fileIO
 	rm.RegisterApiObject("ipfs", mod.ipfsApi)
 	return nil
 }
 
 func (mod *IpfsModule) Init() error {
-	return mod.ipfs.Init(mod.rootDir)
+	fmt.Println("IPFS: initializing")
+	
+	// Now we load (or create) the config file for decerver stuff.
+	ipfsModDir := path.Join(mod.fileIO.Modules(),"ipfs")
+	// ipfsConf := path.Join(ipfsModDir,"config")
+	var err error
+	configFile := &IpfsDecerverConfig{}
+	err = mod.fileIO.UnmarshalJsonFromFile(ipfsModDir, "config", configFile)
+	if err != nil {
+		rootDir := path.Join(mod.fileIO.Filesystems(),"ipfs")
+		mod.fileIO.CreateDirectory(rootDir)
+		fmt.Println("Ipfs: config error - resorting to defaults: " + err.Error())
+		configFile = getDefaultConfig(rootDir)
+		oErr := mod.fileIO.MarshalJsonToFile(ipfsModDir,"config", configFile)
+		if oErr != nil {
+			fmt.Println("Config not saved: " + oErr.Error())
+		}
+	} else {
+		
+	}
+	mod.config = configFile
+	
+	// Now we go on to load ipfs using the data from the config file.
+	return mod.ipfs.Init(mod.config.RootDir)
 }
 
 func (mod *IpfsModule) Start() error {

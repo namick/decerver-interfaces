@@ -15,11 +15,9 @@ import (
 )
 
 // Keep this higher then 1024
-const nBitsForKeypairDefault = 4096
+const nBitsForKeypairDefault = 2048
 
 func (ipfs *Ipfs) Init(rootDir string) error {
-	fmt.Println("IPFS: initializing")
-	
 	cfg, err := config.Load(path.Join(rootDir,"config"))
 
 	if err != nil {
